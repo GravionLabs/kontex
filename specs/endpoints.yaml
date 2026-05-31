@@ -1,0 +1,10 @@
+version: 1
+tools:
+  - name: list-specs
+    description: List files in docs/ and specs/
+  - name: load-spec
+    description: Load a single file from docs/ or specs/
+  - name: search-specs
+    description: Search Markdown and YAML specs
+  - name: teams-context
+    description: Return dynamic support context
