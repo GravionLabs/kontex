@@ -14,7 +14,6 @@ import {
   SpecDirectory,
   SpecFileInfo,
   toNormalizedContent,
-  resolveSpecVersion,
 } from './spec-types.js';
 
 interface StoredSpecRow {
@@ -43,7 +42,7 @@ export class SqliteSpecStore {
     this.db.prepare('INSERT INTO projects (name, updated_at) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET updated_at=excluded.updated_at').run(project, now);
 
     const files = await listSpecFiles(rootDir);
-    const readHash = this.db.prepare('SELECT content_hash FROM index_state WHERE project = ? AND path = ?');
+    const readVersion = this.db.prepare('SELECT version FROM specs WHERE project = ? AND path = ?');
     const upsertSpec = this.db.prepare(`
       INSERT INTO specs (project, type, version, path, content, raw, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -54,16 +53,8 @@ export class SqliteSpecStore {
         raw = excluded.raw,
         updated_at = excluded.updated_at
     `);
-    const upsertState = this.db.prepare(`
-      INSERT INTO index_state (project, path, content_hash, updated_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(project, path) DO UPDATE SET
-        content_hash = excluded.content_hash,
-        updated_at = excluded.updated_at
-    `);
     const deleteSpec = this.db.prepare('DELETE FROM specs WHERE project = ? AND path = ?');
-    const deleteState = this.db.prepare('DELETE FROM index_state WHERE project = ? AND path = ?');
-    const knownPaths = this.db.prepare('SELECT path FROM index_state WHERE project = ?').all(project) as Array<{ path: string }>;
+    const knownPaths = this.db.prepare('SELECT path FROM specs WHERE project = ?').all(project) as Array<{ path: string }>;
     const seenPaths = new Set<string>();
 
     let updated = 0;
@@ -71,19 +62,17 @@ export class SqliteSpecStore {
     for (const file of files) {
       const loaded = await loadSpecFile(rootDir, file.relativePath);
       const hash = contentHash(loaded.content);
-      const previous = readHash.get(project, loaded.relativePath) as { content_hash: string } | undefined;
+      const previous = readVersion.get(project, loaded.relativePath) as { version: string } | undefined;
       seenPaths.add(loaded.relativePath);
 
-      if (previous?.content_hash === hash) {
+      if (previous?.version === hash) {
         skipped += 1;
         continue;
       }
 
       const type = detectSpecType(loaded.relativePath, loaded.content);
-      const version = resolveSpecVersion(loaded.relativePath, loaded.content, hash);
       const normalizedContent = toNormalizedContent(loaded.relativePath, loaded.content);
-      upsertSpec.run(project, type, version, loaded.relativePath, normalizedContent, loaded.content, loaded.updatedAt);
-      upsertState.run(project, loaded.relativePath, hash, now);
+      upsertSpec.run(project, type, hash, loaded.relativePath, normalizedContent, loaded.content, loaded.updatedAt);
       updated += 1;
     }
 
@@ -94,7 +83,6 @@ export class SqliteSpecStore {
       }
 
       deleteSpec.run(project, entry.path);
-      deleteState.run(project, entry.path);
       deleted += 1;
     }
 
@@ -195,6 +183,8 @@ export class SqliteSpecStore {
 
   private initializeSchema(): void {
     this.db.exec(`
+      DROP TABLE IF EXISTS index_state;
+
       CREATE TABLE IF NOT EXISTS projects (
         name TEXT PRIMARY KEY,
         updated_at DATETIME NOT NULL
@@ -210,15 +200,6 @@ export class SqliteSpecStore {
         raw TEXT NOT NULL,
         updated_at DATETIME NOT NULL,
         UNIQUE(project, path),
-        FOREIGN KEY(project) REFERENCES projects(name) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS index_state (
-        project TEXT NOT NULL,
-        path TEXT NOT NULL,
-        content_hash TEXT NOT NULL,
-        updated_at DATETIME NOT NULL,
-        PRIMARY KEY(project, path),
         FOREIGN KEY(project) REFERENCES projects(name) ON DELETE CASCADE
       );
 

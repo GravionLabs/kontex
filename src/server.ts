@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { ProjectRegistry } from './services/project-registry.js';
 import { SpecStore } from './services/spec-store.js';
+import { registerGetContextTool } from './tools/get-context.js';
 import { registerListSpecsTool } from './tools/list-specs.js';
 import { registerLoadSpecTool } from './tools/load-spec.js';
 import { registerReindexSpecsTool } from './tools/reindex-specs.js';
@@ -19,6 +20,7 @@ export function createServer(rootDir = process.cwd()): McpServer {
   registerListSpecsTool(server, store);
   registerLoadSpecTool(server, store);
   registerSearchSpecsTool(server, store);
+  registerGetContextTool(server, store);
   registerTeamsContextTool(server, store);
   registerReindexSpecsTool(server, store);
 

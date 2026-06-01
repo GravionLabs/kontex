@@ -1,6 +1,6 @@
 {
   "name": "mcp-spec-server",
   "transport": "stdio",
-  "command": "npm",
+  "command": "pnpm",
   "args": ["run", "start"]
 }

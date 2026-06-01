@@ -1,9 +1,11 @@
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';
+import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
 import { ProjectRegistry } from './project-registry.js';
 import { SpecServerError } from './rules.js';
 import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
 import { SqliteSpecStore } from './sqlite-spec-store.js';
 import type { ReindexResult, SearchResult, SpecDirectory, SpecFileInfo } from './spec-types.js';
+import type { WorkflowPhase } from './spec-types.js';
 
 export class SpecStore {
   private readonly sqliteStore: SqliteSpecStore | null;
@@ -71,6 +73,17 @@ export class SpecStore {
     }
 
     return scanTeamsContext(context.rootDir, topic);
+  }
+
+  async getContext(project: string | undefined, phase: WorkflowPhase): Promise<Array<{ relativePath: string; content: string }>> {
+    const context = this.projectRegistry.resolveProjectRoot(project);
+    if (this.sqliteStore) {
+      await this.ensureIndexed(context.name, context.rootDir);
+      const rows = this.sqliteStore.listRaw(context.name);
+      return getPhaseContextFromDocuments(rows, phase);
+    }
+
+    return getPhaseContext(context.rootDir, phase);
   }
 
   async reindex(project?: string): Promise<ReindexResult[]> {

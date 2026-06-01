@@ -29,8 +29,8 @@ afterEach(() => {
 describe('sqlite spec store', () => {
   it('indexes multiple projects in one sqlite database', async () => {
     const alphaRoot = await createProjectRoot('mcp-alpha-', {
-      'docs/rules.md': '# Rules\nversion: 1.2.3\nTeam support channel.',
-      'specs/endpoints.yaml': 'version: 2.0.0\nname: alpha-endpoint\n',
+      'docs/rules.md': '# Rules\nTeam support channel.',
+      'specs/endpoints.yaml': 'name: alpha-endpoint\n',
     });
     const betaRoot = await createProjectRoot('mcp-beta-', {
       'docs/workflow.md': '# Workflow\nEscalation workflow for support.',
@@ -66,7 +66,7 @@ describe('sqlite spec store', () => {
 
   it('updates sqlite rows when file hashes change', async () => {
     const root = await createProjectRoot('mcp-hash-', {
-      'docs/rules.md': '# Rules\nversion: 1.0.0\nOld content',
+      'docs/rules.md': '# Rules\nOld content',
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
@@ -79,7 +79,8 @@ describe('sqlite spec store', () => {
     const initial = await store.loadSpec('alpha', 'docs/rules.md');
     expect(initial.content).toContain('Old content');
 
-    await writeFile(path.join(root, 'docs', 'rules.md'), '# Rules\nversion: 1.1.0\nNew content');
+    const newContent = '# Rules\nNew content';
+    await writeFile(path.join(root, 'docs', 'rules.md'), newContent);
     const updated = await store.loadSpec('alpha', 'docs/rules.md');
     expect(updated.content).toContain('New content');
 
@@ -87,7 +88,7 @@ describe('sqlite spec store', () => {
     const row = db
       .prepare('SELECT version, raw FROM specs WHERE project = ? AND path = ?')
       .get('alpha', 'docs/rules.md') as { version: string; raw: string };
-    expect(row.version).toBe('1.1.0');
+    expect(row.version).toMatch(/^[0-9a-f]{64}$/);
     expect(row.raw).toContain('New content');
     db.close();
   });

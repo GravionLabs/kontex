@@ -5,6 +5,23 @@ import { parse as parseYaml } from 'yaml';
 
 export type SpecType = 'api' | 'domain' | 'workflow' | 'validation' | 'event' | 'rule';
 export type SpecDirectory = 'docs' | 'specs';
+export type WorkflowPhase = 'analysis' | 'planning' | 'implementation' | 'testing' | 'verification';
+
+export const WORKFLOW_PHASES: WorkflowPhase[] = ['analysis', 'planning', 'implementation', 'testing', 'verification'];
+
+export const GLOBAL_CONTEXT_PATHS: string[] = ['specs/architecture/rules.md', 'docs/conventions.md'];
+
+export const PHASE_SPEC_DIRS: Record<WorkflowPhase, string[]> = {
+  analysis: ['specs/architecture', 'specs/domain'],
+  planning: ['specs/architecture', 'specs/domain', 'specs/api'],
+  implementation: ['specs/architecture', 'specs/api', 'specs/validation', 'specs/workflows'],
+  testing: ['specs/validation', 'specs/workflows'],
+  verification: ['specs/domain', 'specs/validation'],
+};
+
+export function phaseContextPath(phase: WorkflowPhase): string {
+  return `specs/phases/${phase}.md`;
+}
 
 export interface SpecFileInfo {
   relativePath: string;
@@ -30,8 +47,6 @@ export interface ReindexResult {
   deleted: number;
   skipped: number;
 }
-
-const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
 export function getFileKind(relativePath: string): string {
   return path.extname(relativePath).slice(1) || 'text';
@@ -82,24 +97,6 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
   }
 
   return 'api';
-}
-
-export function resolveSpecVersion(relativePath: string, raw: string, hash: string): string {
-  const parsed = parseStructuredContent(relativePath, raw);
-
-  if (typeof parsed === 'object' && parsed !== null && 'version' in parsed) {
-    const candidate = String((parsed as Record<string, unknown>).version ?? '').trim();
-    if (candidate.length > 0) {
-      return candidate;
-    }
-  }
-
-  const semverInText = raw.match(/\b\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\b/)?.[0];
-  if (semverInText && SEMVER_PATTERN.test(semverInText)) {
-    return semverInText;
-  }
-
-  return hash.slice(0, 12);
 }
 
 export function toNormalizedContent(relativePath: string, raw: string): string {
