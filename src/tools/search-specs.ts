@@ -1,9 +1,7 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import type { SpecStore } from '../services/spec-store.js';
+import { z } from 'zod';
 import { formatToolError, projectSchema, searchQuerySchema, textContent } from '../services/rules.js';
+import type { SpecStore } from '../services/spec-store.js';
 
 export function registerSearchSpecsTool(server: McpServer, store: SpecStore): void {
   server.registerTool(

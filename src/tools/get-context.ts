@@ -1,9 +1,7 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import type { SpecStore } from '../services/spec-store.js';
+import { z } from 'zod';
 import { formatToolError, projectSchema, textContent } from '../services/rules.js';
+import type { SpecStore } from '../services/spec-store.js';
 import { WORKFLOW_PHASES } from '../services/spec-types.js';
 
 export function registerGetContextTool(server: McpServer, store: SpecStore): void {

@@ -1,8 +1,8 @@
-import { access, readFile, readdir, stat } from 'node:fs/promises';
+import { access, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { allowedExtensions, ensureAllowedRootPath } from './rules.js';
-import { GLOBAL_CONTEXT_PATHS, PHASE_SPEC_DIRS, phaseContextPath, WorkflowPhase } from './spec-types.js';
+import { GLOBAL_CONTEXT_PATHS, PHASE_SPEC_DIRS, phaseContextPath, type WorkflowPhase } from './spec-types.js';
 
 export interface PhaseContextEntry {
   relativePath: string;
@@ -54,7 +54,7 @@ export function getPhaseContextFromDocuments(
     const lower = doc.relativePath.toLowerCase();
     const isGlobal = globalPaths.has(doc.relativePath);
     const isPhaseDoc = doc.relativePath === phasePath;
-    const isInPhaseDir = [...phaseDirs].some((dir) => lower.startsWith(dir + '/'));
+    const isInPhaseDir = [...phaseDirs].some((dir) => lower.startsWith(`${dir}/`));
 
     if ((isGlobal || isPhaseDoc || isInPhaseDir) && !seen.has(doc.relativePath)) {
       seen.add(doc.relativePath);
@@ -110,9 +110,7 @@ async function loadDirectory(rootDir: string, dirRelativePath: string): Promise<
 
         const content = await readFile(absolutePath, 'utf8');
         results.push({ relativePath, content });
-      } catch {
-        continue;
-      }
+      } catch {}
     }
   } catch {
     // Directory does not exist — that's fine

@@ -16,7 +16,10 @@ export async function scanTeamsContext(rootDir: string, topic?: string): Promise
   return scanTeamsContextFromDocuments(documents, topic);
 }
 
-export function scanTeamsContextFromDocuments(documents: Array<{ relativePath: string; content: string }>, topic?: string): string[] {
+export function scanTeamsContextFromDocuments(
+  documents: Array<{ relativePath: string; content: string }>,
+  topic?: string,
+): string[] {
   const keywords = buildKeywords(topic);
   const results: string[] = [];
 
@@ -49,7 +52,8 @@ function extractRelevantExcerpt(content: string, keywords: string[]): string {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const lower = line.toLowerCase();
-    const headingMatch = /^#{1,3}\s+/.test(line) && (lower.includes('team') || lower.includes('support') || lower.includes('context'));
+    const headingMatch =
+      /^#{1,3}\s+/.test(line) && (lower.includes('team') || lower.includes('support') || lower.includes('context'));
     const keywordMatch = keywords.length > 0 && keywords.some((keyword) => lower.includes(keyword));
 
     if (!headingMatch && !keywordMatch) {

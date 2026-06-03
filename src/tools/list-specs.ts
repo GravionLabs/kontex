@@ -1,9 +1,7 @@
-import { z } from 'zod';
-
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import type { SpecStore } from '../services/spec-store.js';
+import { z } from 'zod';
 import { formatToolError, projectSchema, textContent } from '../services/rules.js';
+import type { SpecStore } from '../services/spec-store.js';
 
 export function registerListSpecsTool(server: McpServer, store: SpecStore): void {
   server.registerTool(
@@ -24,9 +22,7 @@ export function registerListSpecsTool(server: McpServer, store: SpecStore): void
         }
 
         const projectLabel = project?.trim() || store.defaultProject;
-        const text = entries
-          .map((entry) => `- ${entry.relativePath} (${entry.kind}, ${entry.size} bytes)`)
-          .join('\n');
+        const text = entries.map((entry) => `- ${entry.relativePath} (${entry.kind}, ${entry.size} bytes)`).join('\n');
 
         return { content: [textContent(`# project: ${projectLabel}\n\n${text}`)] };
       } catch (error) {

@@ -7,6 +7,9 @@ pnpm build             # compile TypeScript to dist/
 pnpm dev               # run with tsx watch (development)
 pnpm test              # run all tests once
 pnpm test:watch        # run tests in watch mode
+pnpm lint              # lint src/ and tests/
+pnpm format            # format src/ and tests/ (writes changes)
+pnpm check             # lint + format + organize imports (writes changes)
 
 # Run a single test file
 npx vitest run tests/services.test.ts

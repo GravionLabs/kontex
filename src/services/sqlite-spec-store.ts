@@ -9,10 +9,10 @@ import {
   contentHash,
   detectSpecType,
   getFileKind,
-  ReindexResult,
-  SearchResult,
-  SpecDirectory,
-  SpecFileInfo,
+  type ReindexResult,
+  type SearchResult,
+  type SpecDirectory,
+  type SpecFileInfo,
   toNormalizedContent,
 } from './spec-types.js';
 
@@ -39,7 +39,11 @@ export class SqliteSpecStore {
 
   async reindexProject(project: string, rootDir: string): Promise<ReindexResult> {
     const now = new Date().toISOString();
-    this.db.prepare('INSERT INTO projects (name, updated_at) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET updated_at=excluded.updated_at').run(project, now);
+    this.db
+      .prepare(
+        'INSERT INTO projects (name, updated_at) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET updated_at=excluded.updated_at',
+      )
+      .run(project, now);
 
     const files = await listSpecFiles(rootDir);
     const readVersion = this.db.prepare('SELECT version FROM specs WHERE project = ? AND path = ?');
@@ -54,7 +58,9 @@ export class SqliteSpecStore {
         updated_at = excluded.updated_at
     `);
     const deleteSpec = this.db.prepare('DELETE FROM specs WHERE project = ? AND path = ?');
-    const knownPaths = this.db.prepare('SELECT path FROM specs WHERE project = ?').all(project) as Array<{ path: string }>;
+    const knownPaths = this.db.prepare('SELECT path FROM specs WHERE project = ?').all(project) as Array<{
+      path: string;
+    }>;
     const seenPaths = new Set<string>();
 
     let updated = 0;
@@ -102,7 +108,9 @@ export class SqliteSpecStore {
       ? (this.db
           .prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? AND path LIKE ? ORDER BY path')
           .all(project, `${directory}/%`) as StoredSpecRow[])
-      : (this.db.prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? ORDER BY path').all(project) as StoredSpecRow[]);
+      : (this.db
+          .prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? ORDER BY path')
+          .all(project) as StoredSpecRow[]);
 
     return rows.map((row) => ({
       relativePath: row.path,
@@ -132,9 +140,10 @@ export class SqliteSpecStore {
   }
 
   searchSpecs(project: string, query: string, limit: number): SearchResult[] {
-    const rows = this.db
-      .prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path')
-      .all(project) as Array<{ path: string; raw: string }>;
+    const rows = this.db.prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path').all(project) as Array<{
+      path: string;
+      raw: string;
+    }>;
 
     const terms = query
       .toLowerCase()
@@ -149,7 +158,8 @@ export class SqliteSpecStore {
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index];
         const lowered = line.toLowerCase();
-        const found = terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
+        const found =
+          terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
         if (!found) {
           continue;
         }
@@ -174,9 +184,10 @@ export class SqliteSpecStore {
   }
 
   listRaw(project: string): Array<{ relativePath: string; content: string }> {
-    const rows = this.db
-      .prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path')
-      .all(project) as Array<{ path: string; raw: string }>;
+    const rows = this.db.prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path').all(project) as Array<{
+      path: string;
+      raw: string;
+    }>;
 
     return rows.map((row) => ({ relativePath: row.path, content: row.raw }));
   }

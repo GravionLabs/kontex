@@ -1,4 +1,4 @@
-import { access, readFile, readdir, stat } from 'node:fs/promises';
+import { access, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { allowedExtensions, ensureAllowedRootPath, ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
@@ -54,7 +54,8 @@ export async function searchSpecFiles(rootDir: string, query: string, limit = 5)
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
       const lowered = line.toLowerCase();
-      const found = terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
+      const found =
+        terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
 
       if (!found) {
         continue;
@@ -123,7 +124,10 @@ async function assertReadableFile(absolutePath: string): Promise<void> {
 
 function isAllowedSpecFile(relativePath: string): boolean {
   const normalized = relativePath.toLowerCase();
-  return (normalized.startsWith('docs/') || normalized.startsWith('specs/')) && allowedExtensions.some((extension) => normalized.endsWith(extension));
+  return (
+    (normalized.startsWith('docs/') || normalized.startsWith('specs/')) &&
+    allowedExtensions.some((extension) => normalized.endsWith(extension))
+  );
 }
 
 function isMissingDirectoryError(error: unknown): boolean {

@@ -1,11 +1,10 @@
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';
 import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
-import { ProjectRegistry } from './project-registry.js';
+import type { ProjectRegistry } from './project-registry.js';
 import { SpecServerError } from './rules.js';
-import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
+import type { ReindexResult, SearchResult, SpecDirectory, SpecFileInfo, WorkflowPhase } from './spec-types.js';
 import { SqliteSpecStore } from './sqlite-spec-store.js';
-import type { ReindexResult, SearchResult, SpecDirectory, SpecFileInfo } from './spec-types.js';
-import type { WorkflowPhase } from './spec-types.js';
+import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
 
 export class SpecStore {
   private readonly sqliteStore: SqliteSpecStore | null;
@@ -75,7 +74,10 @@ export class SpecStore {
     return scanTeamsContext(context.rootDir, topic);
   }
 
-  async getContext(project: string | undefined, phase: WorkflowPhase): Promise<Array<{ relativePath: string; content: string }>> {
+  async getContext(
+    project: string | undefined,
+    phase: WorkflowPhase,
+  ): Promise<Array<{ relativePath: string; content: string }>> {
     const context = this.projectRegistry.resolveProjectRoot(project);
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
@@ -92,7 +94,9 @@ export class SpecStore {
     }
 
     const projectName = project?.trim();
-    const targets = projectName ? [this.projectRegistry.resolveProjectRoot(projectName)] : this.projectRegistry.listProjects().map((name) => this.projectRegistry.resolveProjectRoot(name));
+    const targets = projectName
+      ? [this.projectRegistry.resolveProjectRoot(projectName)]
+      : this.projectRegistry.listProjects().map((name) => this.projectRegistry.resolveProjectRoot(name));
 
     const results: ReindexResult[] = [];
     for (const target of targets) {

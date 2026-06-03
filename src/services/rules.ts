@@ -8,7 +8,10 @@ export const specPathSchema = z
   .describe('Relative path under docs/ or specs/')
   .refine((value) => !value.includes('..'), 'Path traversal is not allowed')
   .refine((value) => value.startsWith('docs/') || value.startsWith('specs/'), 'Path must start with docs/ or specs/')
-  .refine((value) => allowedExtensions.some((extension) => value.toLowerCase().endsWith(extension)), 'Unsupported file type');
+  .refine(
+    (value) => allowedExtensions.some((extension) => value.toLowerCase().endsWith(extension)),
+    'Unsupported file type',
+  );
 
 export const searchQuerySchema = z.string().trim().min(2).max(120);
 export const projectSchema = z.string().trim().min(1).max(120).optional().describe('Optional project name');

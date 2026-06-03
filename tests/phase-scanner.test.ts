@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -23,9 +23,15 @@ async function createPhaseFixtureRoot(): Promise<string> {
   await writeFile(path.join(rootDir, 'specs', 'domain', 'ticket.yaml'), 'name: ticket\nfields: [id, title]');
   await writeFile(path.join(rootDir, 'specs', 'api', 'assign-ticket.yaml'), 'endpoint: POST /tickets/:id/assign');
   await writeFile(path.join(rootDir, 'specs', 'validation', 'ticket.yaml'), 'rule: title must not be empty');
-  await writeFile(path.join(rootDir, 'specs', 'workflows', 'assign.workflow.md'), '# Assign Workflow\nStep 1: validate input.');
+  await writeFile(
+    path.join(rootDir, 'specs', 'workflows', 'assign.workflow.md'),
+    '# Assign Workflow\nStep 1: validate input.',
+  );
   await writeFile(path.join(rootDir, 'specs', 'phases', 'analysis.md'), '# Analysis Phase\nUnderstand the problem.');
-  await writeFile(path.join(rootDir, 'specs', 'phases', 'implementation.md'), '# Implementation Phase\nFollow conventions.');
+  await writeFile(
+    path.join(rootDir, 'specs', 'phases', 'implementation.md'),
+    '# Implementation Phase\nFollow conventions.',
+  );
 
   return rootDir;
 }
@@ -73,7 +79,7 @@ describe('phase-scanner (filesystem)', () => {
     const entries = await getPhaseContext(rootDir, 'implementation');
     const paths = entries.map((e) => e.relativePath);
 
-    const implementationDirs = PHASE_SPEC_DIRS['implementation'];
+    const implementationDirs = PHASE_SPEC_DIRS.implementation;
     expect(implementationDirs).not.toContain('specs/domain');
     expect(paths.some((p) => p.startsWith('specs/domain/'))).toBe(false);
   });

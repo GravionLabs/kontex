@@ -75,7 +75,12 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
     return 'rule';
   }
 
-  if (lowerPath.includes('api') || lowerPath.includes('endpoint') || lowerPath.endsWith('.yaml') || lowerPath.endsWith('.yml')) {
+  if (
+    lowerPath.includes('api') ||
+    lowerPath.includes('endpoint') ||
+    lowerPath.endsWith('.yaml') ||
+    lowerPath.endsWith('.yml')
+  ) {
     return 'api';
   }
 

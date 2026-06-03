@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-
-import type { SpecStore } from '../services/spec-store.js';
 import { formatToolError, projectSchema, textContent } from '../services/rules.js';
+import type { SpecStore } from '../services/spec-store.js';
 
 export function registerReindexSpecsTool(server: McpServer, store: SpecStore): void {
   server.registerTool(
