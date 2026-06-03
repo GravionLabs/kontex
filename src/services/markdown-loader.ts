@@ -54,12 +54,14 @@ export async function searchSpecFiles(rootDir: string, query: string, limit = 5)
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
       const lowered = line.toLowerCase();
-      const found =
-        terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
+      const matchingTerms =
+        terms.length === 0
+          ? query.toLowerCase() && lowered.includes(query.toLowerCase())
+            ? 1
+            : 0
+          : terms.filter((term) => lowered.includes(term)).length;
 
-      if (!found) {
-        continue;
-      }
+      if (matchingTerms === 0) continue;
 
       matches.push({
         relativePath: file.relativePath,
@@ -69,15 +71,12 @@ export async function searchSpecFiles(rootDir: string, query: string, limit = 5)
           .map((entry) => entry.trim())
           .filter(Boolean)
           .join(' '),
+        score: matchingTerms,
       });
-
-      if (matches.length >= limit) {
-        return matches;
-      }
     }
   }
 
-  return matches;
+  return matches.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, limit);
 }
 
 async function walkSpecDirectory(rootDir: string, absoluteDirectory: string, results: SpecFileInfo[]): Promise<void> {

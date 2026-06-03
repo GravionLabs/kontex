@@ -22,6 +22,20 @@ interface StoredSpecRow {
   updated_at: string;
 }
 
+interface KnownPathRow {
+  id: number;
+  path: string;
+}
+
+function sanitizeFtsQuery(query: string): string {
+  const terms = query
+    .split(/\s+/)
+    .map((t) => t.replace(/"/g, '').trim())
+    .filter(Boolean);
+  if (terms.length === 0) return '';
+  return terms.map((t) => `"${t}"`).join(' OR ');
+}
+
 export class SqliteSpecStore {
   private readonly db: Database.Database;
 
@@ -57,10 +71,11 @@ export class SqliteSpecStore {
         raw = excluded.raw,
         updated_at = excluded.updated_at
     `);
+    const getSpecId = this.db.prepare('SELECT id FROM specs WHERE project = ? AND path = ?');
+    const deleteFts = this.db.prepare('DELETE FROM specs_fts WHERE rowid = ?');
+    const insertFts = this.db.prepare('INSERT INTO specs_fts(rowid, path, raw, project) VALUES (?, ?, ?, ?)');
     const deleteSpec = this.db.prepare('DELETE FROM specs WHERE project = ? AND path = ?');
-    const knownPaths = this.db.prepare('SELECT path FROM specs WHERE project = ?').all(project) as Array<{
-      path: string;
-    }>;
+    const knownPaths = this.db.prepare('SELECT id, path FROM specs WHERE project = ?').all(project) as KnownPathRow[];
     const seenPaths = new Set<string>();
 
     let updated = 0;
@@ -79,6 +94,10 @@ export class SqliteSpecStore {
       const type = detectSpecType(loaded.relativePath, loaded.content);
       const normalizedContent = toNormalizedContent(loaded.relativePath, loaded.content);
       upsertSpec.run(project, type, hash, loaded.relativePath, normalizedContent, loaded.content, loaded.updatedAt);
+
+      const row = getSpecId.get(project, loaded.relativePath) as { id: number };
+      deleteFts.run(row.id);
+      insertFts.run(row.id, loaded.relativePath, loaded.content, project);
       updated += 1;
     }
 
@@ -88,6 +107,7 @@ export class SqliteSpecStore {
         continue;
       }
 
+      deleteFts.run(entry.id);
       deleteSpec.run(project, entry.path);
       deleted += 1;
     }
@@ -140,47 +160,32 @@ export class SqliteSpecStore {
   }
 
   searchSpecs(project: string, query: string, limit: number): SearchResult[] {
-    const rows = this.db.prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path').all(project) as Array<{
-      path: string;
-      raw: string;
-    }>;
+    const ftsQuery = sanitizeFtsQuery(query);
+    if (!ftsQuery) return [];
 
-    const terms = query
-      .toLowerCase()
-      .split(/\s+/)
-      .map((term) => term.trim())
-      .filter(Boolean);
+    try {
+      const rows = this.db
+        .prepare(
+          `SELECT s.path,
+                  snippet(specs_fts, 1, '**', '**', '...', 24) AS excerpt,
+                  bm25(specs_fts) AS score
+           FROM specs_fts
+           JOIN specs s ON specs_fts.rowid = s.id
+           WHERE specs_fts MATCH ? AND specs_fts.project = ?
+           ORDER BY bm25(specs_fts)
+           LIMIT ?`,
+        )
+        .all(ftsQuery, project, limit) as Array<{ path: string; excerpt: string; score: number }>;
 
-    const results: SearchResult[] = [];
-    for (const row of rows) {
-      const lines = row.raw.split(/\r?\n/);
-
-      for (let index = 0; index < lines.length; index += 1) {
-        const line = lines[index];
-        const lowered = line.toLowerCase();
-        const found =
-          terms.length === 0 ? lowered.includes(query.toLowerCase()) : terms.some((term) => lowered.includes(term));
-        if (!found) {
-          continue;
-        }
-
-        results.push({
-          relativePath: row.path,
-          lineNumber: index + 1,
-          excerpt: lines
-            .slice(index, Math.min(index + 3, lines.length))
-            .map((entry) => entry.trim())
-            .filter(Boolean)
-            .join(' '),
-        });
-
-        if (results.length >= limit) {
-          return results;
-        }
-      }
+      return rows.map((row) => ({
+        relativePath: row.path,
+        lineNumber: 0,
+        excerpt: row.excerpt ?? '',
+        score: row.score,
+      }));
+    } catch {
+      return [];
     }
-
-    return results;
   }
 
   listRaw(project: string): Array<{ relativePath: string; content: string }> {
@@ -216,6 +221,14 @@ export class SqliteSpecStore {
 
       CREATE INDEX IF NOT EXISTS idx_specs_project_type ON specs(project, type);
       CREATE INDEX IF NOT EXISTS idx_specs_project_path ON specs(project, path);
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS specs_fts USING fts5(
+        path, raw, project UNINDEXED
+      );
+
+      INSERT INTO specs_fts(rowid, path, raw, project)
+        SELECT id, path, raw, project FROM specs
+        WHERE id NOT IN (SELECT rowid FROM specs_fts);
     `);
   }
 }

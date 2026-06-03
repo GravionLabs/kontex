@@ -38,6 +38,7 @@ export interface SearchResult {
   relativePath: string;
   lineNumber: number;
   excerpt: string;
+  score?: number;
 }
 
 export interface ReindexResult {

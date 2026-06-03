@@ -117,4 +117,50 @@ describe('sqlite spec store', () => {
     const dbBytes = await readFile(dbPath);
     expect(dbBytes.byteLength).toBeGreaterThan(0);
   });
+
+  it('creates specs_fts virtual table alongside specs', async () => {
+    const root = await createProjectRoot('mcp-fts-schema-', {
+      'docs/auth.md': '# Auth\nJWT authentication token',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_MODE = 'sqlite';
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    await store.listSpecs('proj');
+
+    const db = new Database(dbPath, { readonly: true });
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'specs_fts%'")
+      .all() as Array<{ name: string }>;
+    db.close();
+
+    expect(tables.map((t) => t.name)).toContain('specs_fts_content');
+  });
+
+  it('returns BM25-ranked results for sqlite search', async () => {
+    const root = await createProjectRoot('mcp-bm25-', {
+      'docs/auth.md':
+        '# Auth\nJWT authentication token. Authentication is required for all endpoints. JWT must be valid.',
+      'docs/overview.md': '# Overview\nSystem overview. Authentication is mentioned once here.',
+      'docs/unrelated.md': '# Other\nCompletely unrelated content about deployment.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_MODE = 'sqlite';
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const results = await store.searchSpecs('proj', 'JWT authentication', 5);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].relativePath).toBe('docs/auth.md');
+    expect(results[0].score).toBeDefined();
+    expect(results.find((r) => r.relativePath === 'docs/unrelated.md')).toBeUndefined();
+  });
 });

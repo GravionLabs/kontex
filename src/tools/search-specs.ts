@@ -24,7 +24,10 @@ export function registerSearchSpecsTool(server: McpServer, store: SpecStore): vo
 
         const projectLabel = project?.trim() || store.defaultProject;
         const text = results
-          .map((result) => `- ${result.relativePath}:${result.lineNumber}\n  ${result.excerpt}`)
+          .map((result) => {
+            const loc = result.lineNumber > 0 ? `:${result.lineNumber}` : '';
+            return `- ${result.relativePath}${loc}\n  ${result.excerpt}`;
+          })
           .join('\n');
 
         return { content: [textContent(`# project: ${projectLabel}\n\n${text}`)] };
