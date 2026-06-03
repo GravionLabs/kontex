@@ -1,4 +1,4 @@
-# mcp-spec-server
+# kontex
 
 TypeScript MCP server for specification docs. Makes AI coding agents **rule-based**:
 instead of large freeform instructions, the agent selectively loads structured specs
@@ -70,7 +70,7 @@ Use this layout in any repo that this server serves:
 Ready-to-use starter templates are in `src/templates/`. Copy them into your project repo:
 
 ```bash
-cp -r node_modules/mcp-spec-server/src/templates/. <your-project-root>/
+cp -r node_modules/kontex/src/templates/. <your-project-root>/
 # or copy manually from src/templates/
 ```
 
@@ -100,7 +100,7 @@ map directly to this server's directory convention:
 - `SPEC_SERVER_MODE=sqlite`: maintain a SQLite index and serve reads from DB.
 
 Environment variables:
-- `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.mcp-spec-server/specs.db`)
+- `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.kontex/specs.db`)
 - `SPEC_SERVER_DEFAULT_PROJECT` — default project name
 - `SPEC_SERVER_PROJECTS` — multi-project mapping (`name=/abs/path;name2=/abs/path`)
 

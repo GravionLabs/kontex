@@ -1,6 +1,6 @@
 # GitHub Copilot Instructions
 
-This project uses an `mcp-spec-server` to provide structured, phase-aware project context.
+This project uses **kontex** — a phase-aware context server — to provide structured project context to AI agents.
 
 ## Using get-context
 

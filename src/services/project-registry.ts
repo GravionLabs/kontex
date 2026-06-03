@@ -46,7 +46,7 @@ export class ProjectRegistry {
 function loadProjectConfig(rootDir: string): ProjectConfig {
   const mode = process.env.SPEC_SERVER_MODE === 'sqlite' ? 'sqlite' : 'filesystem';
   const defaultProject = normalizeProjectName(process.env.SPEC_SERVER_DEFAULT_PROJECT || path.basename(path.resolve(rootDir)) || 'default');
-  const sqlitePath = resolvePossiblyRelative(rootDir, process.env.SPEC_SERVER_SQLITE_PATH || path.join('.mcp-spec-server', 'specs.db'));
+  const sqlitePath = resolvePossiblyRelative(rootDir, process.env.SPEC_SERVER_SQLITE_PATH || path.join('.kontex', 'specs.db'));
 
   return { mode, defaultProject, sqlitePath };
 }

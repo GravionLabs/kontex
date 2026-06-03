@@ -1,5 +1,5 @@
 {
-  "name": "mcp-spec-server",
+  "name": "kontex",
   "transport": "stdio",
   "command": "pnpm",
   "args": ["run", "start"]

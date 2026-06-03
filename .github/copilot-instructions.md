@@ -35,7 +35,7 @@ This is a **TypeScript MCP (Model Context Protocol) server** that exposes spec d
 
 **Environment variables:**
 - `SPEC_SERVER_MODE` — `filesystem` | `sqlite`
-- `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.mcp-spec-server/specs.db`)
+- `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.kontex/specs.db`)
 - `SPEC_SERVER_DEFAULT_PROJECT` — default project name (defaults to `basename(cwd)`)
 - `SPEC_SERVER_PROJECTS` — multi-project mapping, e.g. `name=/abs/path;name2=/path2`
 

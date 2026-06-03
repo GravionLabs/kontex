@@ -9,7 +9,7 @@ import { registerReindexSpecsTool } from './tools/reindex-specs.js';
 import { registerSearchSpecsTool } from './tools/search-specs.js';
 import { registerTeamsContextTool } from './tools/teams-context.js';
 
-export const SERVER_NAME = 'mcp-spec-server';
+export const SERVER_NAME = 'kontex';
 export const SERVER_VERSION = '1.0.0';
 
 export function createServer(rootDir = process.cwd()): McpServer {

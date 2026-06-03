@@ -4,7 +4,7 @@ This file tells Claude Code how to work with this repository.
 
 ## MCP Context Server
 
-This project uses an `mcp-spec-server` that provides structured project context.
+This project uses **kontex** — a phase-aware context server — to deliver structured project context to AI agents.
 **Always call `get-context` at the start of every task** before writing any code.
 
 ### Workflow
