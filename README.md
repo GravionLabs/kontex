@@ -94,6 +94,67 @@ map directly to this server's directory convention:
 | `/speckit.tasks` + `.implement` | `specs/api/` + `specs/validation/` |
 | `/speckit.checklist` | testing + verification phases |
 
+## GitHub Copilot Setup
+
+### VS Code Agent Mode (local)
+
+Create `.vscode/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "kontex": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "kontex"],
+      "env": {
+        "SPEC_SERVER_DEFAULT_PROJECT": "${workspaceFolderBasename}"
+      }
+    }
+  }
+}
+```
+
+Then in `.github/copilot-instructions.md` (or `CLAUDE.md`):
+
+```markdown
+Always call `get-context` with the appropriate phase before starting any task:
+- analysis: understanding a problem
+- planning: designing the solution
+- implementation: writing code
+- testing: writing or running tests
+- verification: final review and acceptance check
+
+Use `mode: "summary"` for an overview when many files are loaded,
+then call `load-spec` for the specific files you need.
+```
+
+### Copilot Coding Agent (cloud)
+
+Add `.github/copilot-setup-steps.yml` to your project — this runs before the agent starts working on an issue:
+
+```yaml
+steps:
+  - name: Install kontex
+    run: npm install -g kontex
+
+  - name: Configure kontex MCP
+    run: |
+      mkdir -p ~/.copilot
+      cat > ~/.copilot/mcp.json <<'EOF'
+      {
+        "servers": {
+          "kontex": {
+            "type": "stdio",
+            "command": "kontex"
+          }
+        }
+      }
+      EOF
+```
+
+> **Note:** Requires `kontex` to be published on npm. See the [npm publish](#) workflow.
+
 ## Storage Modes
 
 - **SQLite** (default): maintains a `.kontex/specs.db` index, serves reads from DB. FTS5 + BM25 search available.

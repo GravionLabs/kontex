@@ -1,0 +1,17 @@
+steps:
+  - name: Install kontex
+    run: npm install -g kontex
+
+  - name: Configure kontex MCP
+    run: |
+      mkdir -p ~/.copilot
+      cat > ~/.copilot/mcp.json <<'EOF'
+      {
+        "servers": {
+          "kontex": {
+            "type": "stdio",
+            "command": "kontex"
+          }
+        }
+      }
+      EOF

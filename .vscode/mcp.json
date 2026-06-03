@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "kontex": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "kontex"],
+      "env": {
+        "SPEC_SERVER_DEFAULT_PROJECT": "${workspaceFolderBasename}"
+      }
+    }
+  }
+}

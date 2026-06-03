@@ -1,5 +1,25 @@
 # Copilot Instructions
 
+## Using kontex MCP Tools
+
+When the `kontex` MCP server is available, **always call `get-context` before starting any task**:
+
+```
+get-context(phase: "<phase>")
+```
+
+Choose the phase that matches what you are about to do:
+
+| Phase | When to use |
+|-------|-------------|
+| `analysis` | Understanding a problem, exploring code, diagnosing a bug |
+| `planning` | Designing a solution, creating an implementation plan |
+| `implementation` | Writing or modifying code |
+| `testing` | Writing or running tests |
+| `verification` | Final review, acceptance check, confirming requirements are met |
+
+Use `mode: "summary"` for a quick overview when many files are loaded, then call `load-spec` for the specific files you need in full detail.
+
 ## Commands
 
 ```bash
