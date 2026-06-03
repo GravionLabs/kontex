@@ -14,7 +14,9 @@ async function createProjectRoot(prefix: string, files: Record<string, string>):
   await mkdir(path.join(rootDir, 'specs'), { recursive: true });
 
   for (const [relativePath, content] of Object.entries(files)) {
-    await writeFile(path.join(rootDir, relativePath), content);
+    const absolutePath = path.join(rootDir, relativePath);
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, content);
   }
 
   return rootDir;
@@ -169,5 +171,53 @@ describe('sqlite spec store', () => {
     expect(results[0].relativePath).toBe('docs/auth.md');
     expect(results[0].score).toBeDefined();
     expect(results.find((r) => r.relativePath === 'docs/unrelated.md')).toBeUndefined();
+  });
+
+  it('summary mode returns truncated content for phase files, full content for global paths', async () => {
+    const longParagraph = 'x'.repeat(300);
+    const root = await createProjectRoot('mcp-summary-', {
+      'specs/architecture/rules.md': `# Architecture Rules\n\n${longParagraph}`,
+      'docs/conventions.md': `# Conventions\n\n${longParagraph}`,
+      'specs/domain/ticket.md': `# Ticket Domain\n\n${longParagraph}`,
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const entries = await store.getContext('proj', 'analysis', 'summary');
+
+    const conventions = entries.find((e) => e.relativePath === 'docs/conventions.md');
+    const rules = entries.find((e) => e.relativePath === 'specs/architecture/rules.md');
+    const ticket = entries.find((e) => e.relativePath === 'specs/domain/ticket.md');
+
+    // Global paths always full
+    expect(conventions?.content.length).toBeGreaterThan(200);
+    expect(rules?.content.length).toBeGreaterThan(200);
+
+    // Phase-specific files are summarized
+    expect(ticket?.content).toBeDefined();
+    const ticketParagraph = ticket?.content.split('\n\n')[1] ?? '';
+    expect(ticketParagraph.length).toBeLessThanOrEqual(120);
+  });
+
+  it('full mode returns complete content for all files', async () => {
+    const longParagraph = 'y'.repeat(300);
+    const root = await createProjectRoot('mcp-full-', {
+      'specs/domain/ticket.md': `# Ticket Domain\n\n${longParagraph}`,
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const entries = await store.getContext('proj', 'analysis', 'full');
+    const ticket = entries.find((e) => e.relativePath === 'specs/domain/ticket.md');
+
+    expect(ticket?.content.length).toBeGreaterThan(200);
   });
 });

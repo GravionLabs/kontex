@@ -105,6 +105,49 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
   return 'api';
 }
 
+export function summarizeContent(raw: string): string {
+  const lines = raw.split('\n');
+
+  let heading = '';
+  let headingIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^#{1,2}\s+/.test(lines[i])) {
+      heading = lines[i].replace(/^#{1,2}\s+/, '').trim();
+      headingIdx = i;
+      break;
+    }
+  }
+
+  let paragraph = '';
+  const startIdx = headingIdx >= 0 ? headingIdx + 1 : 0;
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line && !line.startsWith('#')) {
+      paragraph = line;
+      break;
+    }
+  }
+
+  const stripped = stripMarkdownDecorators(paragraph);
+
+  const parts: string[] = [];
+  if (heading) parts.push(`# ${heading}`);
+  if (stripped) parts.push(stripped.slice(0, 120));
+
+  return parts.join('\n\n') || raw.slice(0, 120);
+}
+
+function stripMarkdownDecorators(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
+}
+
 export function toNormalizedContent(relativePath: string, raw: string): string {
   const structured = parseStructuredContent(relativePath, raw);
   return JSON.stringify(structured);

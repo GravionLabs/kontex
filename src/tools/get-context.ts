@@ -21,11 +21,21 @@ export function registerGetContextTool(server: McpServer, store: SpecStore): voi
             'Workflow phase: analysis | planning | implementation | testing | verification. ' +
               'Each phase loads a different set of spec directories.',
           ),
+        mode: z
+          .enum(['full', 'summary'])
+          .optional()
+          .default('full')
+          .describe(
+            'full (default): return complete file content. ' +
+              'summary: return first heading + first paragraph (~120 chars) per file — ' +
+              'use to get an overview, then call load-spec for details. ' +
+              'Global context files (rules.md, conventions.md) are always returned in full.',
+          ),
       },
     },
-    async ({ project, phase }) => {
+    async ({ project, phase, mode }) => {
       try {
-        const entries = await store.getContext(project, phase as (typeof WORKFLOW_PHASES)[number]);
+        const entries = await store.getContext(project, phase as (typeof WORKFLOW_PHASES)[number], mode);
 
         if (entries.length === 0) {
           return {

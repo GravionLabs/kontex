@@ -3,6 +3,7 @@ import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.j
 import type { ProjectRegistry } from './project-registry.js';
 import { SpecServerError } from './rules.js';
 import type { ReindexResult, SearchResult, SpecDirectory, SpecFileInfo, WorkflowPhase } from './spec-types.js';
+import { GLOBAL_CONTEXT_PATHS, summarizeContent } from './spec-types.js';
 import { SqliteSpecStore } from './sqlite-spec-store.js';
 import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
 
@@ -77,15 +78,28 @@ export class SpecStore {
   async getContext(
     project: string | undefined,
     phase: WorkflowPhase,
+    mode: 'full' | 'summary' = 'full',
   ): Promise<Array<{ relativePath: string; content: string }>> {
     const context = this.projectRegistry.resolveProjectRoot(project);
+
+    let entries: Array<{ relativePath: string; content: string }>;
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
       const rows = this.sqliteStore.listRaw(context.name);
-      return getPhaseContextFromDocuments(rows, phase);
+      entries = getPhaseContextFromDocuments(rows, phase);
+    } else {
+      entries = await getPhaseContext(context.rootDir, phase);
     }
 
-    return getPhaseContext(context.rootDir, phase);
+    if (mode === 'full') {
+      return entries;
+    }
+
+    const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
+    return entries.map((entry) => ({
+      relativePath: entry.relativePath,
+      content: globalPathSet.has(entry.relativePath) ? entry.content : summarizeContent(entry.content),
+    }));
   }
 
   async reindex(project?: string): Promise<ReindexResult[]> {
