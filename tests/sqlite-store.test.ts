@@ -27,6 +27,18 @@ afterEach(() => {
 });
 
 describe('sqlite spec store', () => {
+  it('defaults to sqlite mode when SPEC_SERVER_MODE is not set', () => {
+    delete process.env.SPEC_SERVER_MODE;
+    const registry = new ProjectRegistry(process.cwd());
+    expect(registry.mode).toBe('sqlite');
+  });
+
+  it('opts out to filesystem mode when SPEC_SERVER_MODE=filesystem', () => {
+    process.env.SPEC_SERVER_MODE = 'filesystem';
+    const registry = new ProjectRegistry(process.cwd());
+    expect(registry.mode).toBe('filesystem');
+  });
+
   it('indexes multiple projects in one sqlite database', async () => {
     const alphaRoot = await createProjectRoot('mcp-alpha-', {
       'docs/rules.md': '# Rules\nTeam support channel.',
@@ -37,7 +49,6 @@ describe('sqlite spec store', () => {
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
-    process.env.SPEC_SERVER_MODE = 'sqlite';
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
     process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${alphaRoot};beta=${betaRoot}`;
@@ -70,7 +81,6 @@ describe('sqlite spec store', () => {
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
-    process.env.SPEC_SERVER_MODE = 'sqlite';
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
     process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${root}`;
@@ -102,7 +112,6 @@ describe('sqlite spec store', () => {
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
-    process.env.SPEC_SERVER_MODE = 'sqlite';
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
     process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${alphaRoot};beta=${betaRoot}`;
@@ -124,7 +133,6 @@ describe('sqlite spec store', () => {
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
-    process.env.SPEC_SERVER_MODE = 'sqlite';
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
     process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
@@ -150,7 +158,6 @@ describe('sqlite spec store', () => {
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
-    process.env.SPEC_SERVER_MODE = 'sqlite';
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
     process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;

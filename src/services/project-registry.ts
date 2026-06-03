@@ -44,7 +44,7 @@ export class ProjectRegistry {
 }
 
 function loadProjectConfig(rootDir: string): ProjectConfig {
-  const mode = process.env.SPEC_SERVER_MODE === 'sqlite' ? 'sqlite' : 'filesystem';
+  const mode = process.env.SPEC_SERVER_MODE === 'filesystem' ? 'filesystem' : 'sqlite';
   const defaultProject = normalizeProjectName(
     process.env.SPEC_SERVER_DEFAULT_PROJECT || path.basename(path.resolve(rootDir)) || 'default',
   );

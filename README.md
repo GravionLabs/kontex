@@ -96,10 +96,11 @@ map directly to this server's directory convention:
 
 ## Storage Modes
 
-- `SPEC_SERVER_MODE=filesystem` (default): read specs directly from files.
-- `SPEC_SERVER_MODE=sqlite`: maintain a SQLite index and serve reads from DB.
+- **SQLite** (default): maintains a `.kontex/specs.db` index, serves reads from DB. FTS5 + BM25 search available.
+- **Filesystem** (`SPEC_SERVER_MODE=filesystem`): reads specs directly from files on every request.
 
 Environment variables:
+- `SPEC_SERVER_MODE` — `filesystem` to opt out of SQLite (default: `sqlite`)
 - `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.kontex/specs.db`)
 - `SPEC_SERVER_DEFAULT_PROJECT` — default project name
 - `SPEC_SERVER_PROJECTS` — multi-project mapping (`name=/abs/path;name2=/abs/path`)

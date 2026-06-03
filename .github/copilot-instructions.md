@@ -33,11 +33,11 @@ This is a **TypeScript MCP (Model Context Protocol) server** that exposes spec d
 - `src/services/teams-scanner.ts` — scans spec content for headings/keywords related to Teams/support context.
 
 **Storage modes** (set via `SPEC_SERVER_MODE`):
-- `filesystem` (default): files are read directly from disk on every request.
-- `sqlite`: files are indexed into a SQLite DB; reads are served from the DB, with automatic hash-diff updates on each call.
+- `sqlite` **(default)**: files are indexed into a SQLite DB; reads are served from the DB, with automatic hash-diff updates and FTS5 + BM25 search.
+- `filesystem`: files are read directly from disk on every request (opt-out).
 
 **Environment variables:**
-- `SPEC_SERVER_MODE` — `filesystem` | `sqlite`
+- `SPEC_SERVER_MODE` — `filesystem` to opt out of SQLite (default: `sqlite`)
 - `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.kontex/specs.db`)
 - `SPEC_SERVER_DEFAULT_PROJECT` — default project name (defaults to `basename(cwd)`)
 - `SPEC_SERVER_PROJECTS` — multi-project mapping, e.g. `name=/abs/path;name2=/path2`
