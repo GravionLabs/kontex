@@ -31,7 +31,7 @@ export function registerUserInteractionHooks(server: McpServer): void {
         content: [
           {
             type: 'text',
-            text: `Prompt received (${payload.data.length} chars)`,
+            text: `Prompt received (${_payload.data.length} chars)`,
           },
         ],
       };
