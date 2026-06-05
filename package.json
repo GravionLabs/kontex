@@ -2,30 +2,18 @@
   "name": "kontex",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome lint src/ tests/",
-    "format": "biome format --write src/ tests/",
-    "check": "biome check --write src/ tests/"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "better-sqlite3": "^11.10.0",
-    "yaml": "^2.8.1",
-    "zod": "^3.24.0"
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm -r test:watch",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "check": "pnpm -r check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^24.0.0",
-    "tsx": "^4.19.0",
-    "typescript": "^6.0.0",
-    "vitest": "^4.0.0"
+    "typescript": "^6.0.3"
   }
 }

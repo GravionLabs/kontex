@@ -8,3 +8,9 @@
 ## Support workflow
 1. Use `teams-context` for operational guidance.
 2. Escalate any unclear rule conflicts to the owning team.
+
+## Compression workflow
+1. Extract prompt/skill/agent text.
+2. Call `compress-artifact` with `kind` (prompt|skill|agent) and `content`.
+3. Review compressed output and metrics.
+4. Use compressed text in production or further processing.

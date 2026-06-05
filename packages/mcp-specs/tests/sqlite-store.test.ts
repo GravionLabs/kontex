@@ -187,7 +187,7 @@ describe('sqlite spec store', () => {
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
-    const entries = await store.getContext('proj', 'analysis', 'summary');
+    const { entries } = await store.getContext('proj', 'analysis', { mode: 'summary' });
 
     const conventions = entries.find((e) => e.relativePath === 'docs/conventions.md');
     const rules = entries.find((e) => e.relativePath === 'specs/architecture/rules.md');
@@ -215,9 +215,94 @@ describe('sqlite spec store', () => {
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
-    const entries = await store.getContext('proj', 'analysis', 'full');
+    const { entries } = await store.getContext('proj', 'analysis', { mode: 'full' });
     const ticket = entries.find((e) => e.relativePath === 'specs/domain/ticket.md');
 
     expect(ticket?.content.length).toBeGreaterThan(200);
+  });
+
+  it('returns version fingerprints with context entries', async () => {
+    const root = await createProjectRoot('mcp-versions-', {
+      'specs/architecture/rules.md': '# Architecture Rules\n\nNo magic.',
+      'docs/conventions.md': '# Conventions\n\nUse camelCase.',
+      'specs/domain/ticket.md': '# Ticket Domain\n\nEntity details.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const { entries } = await store.getContext('proj', 'analysis', { mode: 'summary' });
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries[0]?.version).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('skips unchanged files when known versions are provided', async () => {
+    const root = await createProjectRoot('mcp-known-', {
+      'specs/architecture/rules.md': '# Architecture Rules\n\nNo magic.',
+      'docs/conventions.md': '# Conventions\n\nUse camelCase.',
+      'specs/domain/ticket.md': '# Ticket Domain\n\nEntity details.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const initial = await store.getContext('proj', 'analysis', { mode: 'summary' });
+    const knownVersions = Object.fromEntries(initial.entries.map((entry) => [entry.relativePath, entry.version]));
+    const deduped = await store.getContext('proj', 'analysis', { mode: 'summary', knownVersions });
+
+    expect(deduped.totalMatched).toBe(initial.entries.length);
+    expect(deduped.entries).toEqual([]);
+  });
+
+  it('returns changed files when provided known version is stale', async () => {
+    const root = await createProjectRoot('mcp-stale-', {
+      'specs/architecture/rules.md': '# Architecture Rules\n\nNo magic.',
+      'docs/conventions.md': '# Conventions\n\nUse camelCase.',
+      'specs/domain/ticket.md': '# Ticket Domain\n\nOld details.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const initial = await store.getContext('proj', 'analysis', { mode: 'full' });
+    const knownVersions = Object.fromEntries(initial.entries.map((entry) => [entry.relativePath, entry.version]));
+
+    await writeFile(path.join(root, 'specs', 'domain', 'ticket.md'), '# Ticket Domain\n\nNew details.');
+
+    const updated = await store.getContext('proj', 'analysis', { mode: 'full', knownVersions });
+
+    expect(updated.entries.map((entry) => entry.relativePath)).toEqual(['specs/domain/ticket.md']);
+    expect(updated.entries[0]?.content).toContain('New details.');
+    expect(updated.entries[0]?.version).not.toBe(knownVersions['specs/domain/ticket.md']);
+  });
+
+  it('supports known-version dedupe in filesystem mode', async () => {
+    const root = await createProjectRoot('mcp-filesystem-known-', {
+      'specs/architecture/rules.md': '# Architecture Rules\n\nNo magic.',
+      'docs/conventions.md': '# Conventions\n\nUse camelCase.',
+      'specs/domain/ticket.md': '# Ticket Domain\n\nEntity details.',
+    });
+
+    process.env.SPEC_SERVER_MODE = 'filesystem';
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const initial = await store.getContext('proj', 'analysis', { mode: 'summary' });
+    const knownVersions = Object.fromEntries(initial.entries.map((entry) => [entry.relativePath, entry.version]));
+    const deduped = await store.getContext('proj', 'analysis', { mode: 'summary', knownVersions });
+
+    expect(deduped.totalMatched).toBe(initial.entries.length);
+    expect(deduped.entries).toEqual([]);
   });
 });

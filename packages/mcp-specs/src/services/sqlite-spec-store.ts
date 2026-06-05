@@ -19,6 +19,7 @@ import {
 interface StoredSpecRow {
   path: string;
   raw: string;
+  version: string;
   updated_at: string;
 }
 
@@ -188,13 +189,16 @@ export class SqliteSpecStore {
     }
   }
 
-  listRaw(project: string): Array<{ relativePath: string; content: string }> {
-    const rows = this.db.prepare('SELECT path, raw FROM specs WHERE project = ? ORDER BY path').all(project) as Array<{
+  listRaw(project: string): Array<{ relativePath: string; content: string; version: string }> {
+    const rows = this.db
+      .prepare('SELECT path, raw, version FROM specs WHERE project = ? ORDER BY path')
+      .all(project) as Array<{
       path: string;
       raw: string;
+      version: string;
     }>;
 
-    return rows.map((row) => ({ relativePath: row.path, content: row.raw }));
+    return rows.map((row) => ({ relativePath: row.path, content: row.raw, version: row.version }));
   }
 
   private initializeSchema(): void {

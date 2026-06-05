@@ -1,202 +1,79 @@
-# kontex
+# kontex — Monorepo for Copilot CLI Plugins & MCP Servers
 
-TypeScript MCP server for specification docs. Makes AI coding agents **rule-based**:
-instead of large freeform instructions, the agent selectively loads structured specs
-from the repo — targeted, searchable, deterministic.
+A **pnpm monorepo** providing prompt compression, persistent session memory, and efficient dev tool execution for GitHub Copilot CLI.
 
-## Tools
+## Packages
 
-| Tool | Description |
-|------|-------------|
-| `get-context` | **Primary tool.** Aggregates rules, conventions, and phase-specific specs for a given workflow phase. Call this at the start of every task. |
-| `list-specs` | List all available files from `docs/` and `specs/`. |
-| `load-spec` | Load a single spec file. |
-| `search-specs` | Full-text search across all specs. |
-| `teams-context` | Return support/team-related context from docs. |
-| `reindex-specs` | Refresh SQLite index (SQLite mode only). |
+### `@kontex/mcp-specs`
+MCP server that exposes AI-friendly spec documents from a project's `docs/` and `specs/` directories.
+- **Tools**: `get-context` (phases), `load-spec`, `search-specs`, `list-specs`, `compress-artifact`
+- **Storage**: SQLite + FTS5 or filesystem mode
+- **Use case**: Load project context efficiently without re-reading files every turn
+
+### `@kontex/cli-plugin`
+GitHub Copilot CLI plugin for prompt compression and persistent session memory.
+- **preCompact hook**: Compresses prompts before `/compact` context reduction
+- **cavemem integration**: Persistent cross-session memory via local SQLite + caveman compression
+- **Use case**: Reduce token spend and remember prior decisions across sessions
+
+### `@kontex/mcp-devtools`
+MCP server for efficient dev tool execution (pytest, dotnet build, npm run, cargo, etc.).
+- **Tools**: Planned — pytest, dotnet, npm, cargo runners
+- **Use case**: Execute build/test commands from AI agents without manual CLI work
 
 ## Quick Start
 
 ```bash
+# Install dependencies (all packages)
 pnpm install
+
+# Build all packages
+pnpm build
+
+# Run dev mode (all packages)
 pnpm dev
+
+# Run tests (all packages)
+pnpm test
+pnpm test:watch
+
+# Lint & format (all packages)
+pnpm lint
+pnpm format
+pnpm check
+
+# Work in a single package
+cd packages/mcp-specs
+pnpm build
+pnpm test
 ```
 
-## `get-context` — Phase-Based Context
-
-The `get-context` tool aggregates the right project context for each development phase:
-
-| Phase | Loaded spec directories |
-|-------|-------------------------|
-| `analysis` | `specs/architecture/` + `specs/domain/` + `specs/phases/analysis.md` |
-| `planning` | `specs/architecture/` + `specs/domain/` + `specs/api/` + `specs/phases/planning.md` |
-| `implementation` | `specs/architecture/` + `specs/api/` + `specs/validation/` + `specs/workflows/` + `specs/phases/implementation.md` |
-| `testing` | `specs/validation/` + `specs/workflows/` + `specs/phases/testing.md` |
-| `verification` | `specs/domain/` + `specs/validation/` + `specs/phases/verification.md` |
-
-**Always loaded** (all phases): `specs/architecture/rules.md` and `docs/conventions.md`.
-
-## Directory Convention
-
-Use this layout in any repo that this server serves:
+## Structure
 
 ```
-<project-root>/
-├── CLAUDE.md                             # AI agent instructions (Claude Code)
-├── .github/
-│   └── copilot-instructions.md           # AI agent instructions (GitHub Copilot)
-├── docs/
-│   ├── architecture.md                   # System architecture overview
-│   ├── conventions.md                    # Coding conventions (always loaded)
-│   └── glossary.md                       # Domain glossary
-└── specs/
-    ├── architecture/
-    │   ├── rules.md                      # Global rules (always loaded)
-    │   └── conventions.yaml
-    ├── domain/                           # Domain entities (YAML/MD)
-    ├── api/                              # API specifications
-    ├── workflows/                        # Workflow descriptions
-    ├── validation/                       # Validation rules
-    └── phases/                           # Phase-specific guidance
-        ├── analysis.md
-        ├── planning.md
-        ├── implementation.md
-        ├── testing.md
-        └── verification.md
+kontex/
+├── packages/
+│   ├── mcp-specs/          # @kontex/mcp-specs — MCP server for spec docs
+│   ├── cli-plugin/         # @kontex/cli-plugin — CLI plugin with cavemem
+│   └── mcp-devtools/       # @kontex/mcp-devtools — MCP server for dev tools
+├── pnpm-workspace.yaml     # Workspace config
+├── tsconfig.base.json      # Shared TypeScript config
+├── biome.json              # Linter & formatter
+└── .github/
+    ├── copilot-instructions.md
+    └── copilot-setup-steps.yml
 ```
 
-## Templates
+## Development
 
-Ready-to-use starter templates are in `src/templates/`. Copy them into your project repo:
+- **ESM + NodeNext**: All packages use ES modules (`"module": "NodeNext"`)
+- **TypeScript 6**: Latest stable; compiles to ES2022
+- **Biome**: Fast linter + formatter for all packages
+- **Vitest**: Unit tests (SQLite, MCP tools, etc.)
 
-```bash
-cp -r node_modules/kontex/src/templates/. <your-project-root>/
-# or copy manually from src/templates/
-```
+## Contributing
 
-Includes:
-- `specs/architecture/rules.md` — project rules (like spec-kit `constitution`)
-- `docs/conventions.md` — coding conventions
-- `specs/phases/*.md` — phase-specific checklists and guidance
-- `CLAUDE.md` — Claude Code integration with `get-context` example
-- `.github/copilot-instructions.md` — GitHub Copilot integration
-
-## spec-kit Alignment
-
-[github/spec-kit](https://github.com/github/spec-kit) generates SDD artifacts that
-map directly to this server's directory convention:
-
-| spec-kit command | Maps to |
-|------------------|---------|
-| `/speckit.constitution` | `specs/architecture/rules.md` |
-| `/speckit.specify` | `specs/domain/` files |
-| `/speckit.plan` | `specs/workflows/` files |
-| `/speckit.tasks` + `.implement` | `specs/api/` + `specs/validation/` |
-| `/speckit.checklist` | testing + verification phases |
-
-## GitHub Copilot Setup
-
-### VS Code Agent Mode (local)
-
-Create `.vscode/mcp.json` in your project:
-
-```json
-{
-  "servers": {
-    "kontex": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "kontex"],
-      "env": {
-        "SPEC_SERVER_DEFAULT_PROJECT": "${workspaceFolderBasename}"
-      }
-    }
-  }
-}
-```
-
-Then in `.github/copilot-instructions.md` (or `CLAUDE.md`):
-
-```markdown
-Always call `get-context` with the appropriate phase before starting any task:
-- analysis: understanding a problem
-- planning: designing the solution
-- implementation: writing code
-- testing: writing or running tests
-- verification: final review and acceptance check
-
-Use `mode: "summary"` for an overview when many files are loaded,
-then call `load-spec` for the specific files you need.
-```
-
-### Copilot Coding Agent (cloud)
-
-Add `.github/copilot-setup-steps.yml` to your project — this runs before the agent starts working on an issue:
-
-```yaml
-steps:
-  - name: Install kontex
-    run: npm install -g kontex
-
-  - name: Configure kontex MCP
-    run: |
-      mkdir -p ~/.copilot
-      cat > ~/.copilot/mcp.json <<'EOF'
-      {
-        "servers": {
-          "kontex": {
-            "type": "stdio",
-            "command": "kontex"
-          }
-        }
-      }
-      EOF
-```
-
-> **Note:** Requires `kontex` to be published on npm. See the [npm publish](#) workflow.
-
-## Storage Modes
-
-- **SQLite** (default): maintains a `.kontex/specs.db` index, serves reads from DB. FTS5 + BM25 search available.
-- **Filesystem** (`SPEC_SERVER_MODE=filesystem`): reads specs directly from files on every request.
-
-Environment variables:
-- `SPEC_SERVER_MODE` — `filesystem` to opt out of SQLite (default: `sqlite`)
-- `SPEC_SERVER_SQLITE_PATH` — path to DB file (default: `.kontex/specs.db`)
-- `SPEC_SERVER_DEFAULT_PROJECT` — default project name
-- `SPEC_SERVER_PROJECTS` — multi-project mapping (`name=/abs/path;name2=/abs/path`)
-
-## CLAUDE.md / copilot-instructions.md Example
-
-Add this to your `CLAUDE.md` or `.github/copilot-instructions.md`:
-
-```markdown
-Always call `get-context` with the appropriate phase before starting any task:
-- analysis: understanding a problem
-- planning: designing the solution
-- implementation: writing code
-- testing: writing or running tests
-- verification: final review and acceptance check
-```
-
-## SQLite Schema (`specs`)
-
-- `project TEXT`
-- `type TEXT` (`api`, `domain`, `workflow`, `validation`, `event`, `rule`)
-- `version TEXT` — SHA-256 content hash of the raw file; used as the cache key
-- `path TEXT`
-- `content TEXT` (JSON-normalized)
-- `raw TEXT` (original text)
-- `updated_at DATETIME`
-
-On reads in SQLite mode the server checks files and updates changed specs using
-SHA-256 hashes. Use `reindex-specs` to force a full refresh.
-
-## Layout
-
-- `src/tools/` — MCP tool registration
-- `src/services/` — file loading, search, phase scanning, validation
-- `src/templates/` — starter templates for new repos
-- `docs/` — human-readable specs (this repo's own docs)
-- `specs/` — machine-readable specs (this repo's own specs)
-
+1. Make changes in the relevant `packages/*/src/`
+2. Run tests: `pnpm test` (or `pnpm -r test` for per-package isolation)
+3. Check linting: `pnpm check`
+4. Commit: conventional commits with `Co-authored-by: Copilot` trailer

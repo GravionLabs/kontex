@@ -2,8 +2,17 @@ import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.
 import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
 import type { ProjectRegistry } from './project-registry.js';
 import { SpecServerError } from './rules.js';
-import type { ReindexResult, SearchResult, SpecDirectory, SpecFileInfo, WorkflowPhase } from './spec-types.js';
-import { GLOBAL_CONTEXT_PATHS, summarizeContent } from './spec-types.js';
+import type {
+  ContextEntry,
+  ContextQueryOptions,
+  ContextQueryResult,
+  ReindexResult,
+  SearchResult,
+  SpecDirectory,
+  SpecFileInfo,
+  WorkflowPhase,
+} from './spec-types.js';
+import { contentHash, GLOBAL_CONTEXT_PATHS, summarizeContent } from './spec-types.js';
 import { SqliteSpecStore } from './sqlite-spec-store.js';
 import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
 
@@ -78,28 +87,45 @@ export class SpecStore {
   async getContext(
     project: string | undefined,
     phase: WorkflowPhase,
-    mode: 'full' | 'summary' = 'full',
-  ): Promise<Array<{ relativePath: string; content: string }>> {
+    options: ContextQueryOptions = {},
+  ): Promise<ContextQueryResult> {
     const context = this.projectRegistry.resolveProjectRoot(project);
+    const { knownVersions = {}, mode = 'full' } = options;
 
-    let entries: Array<{ relativePath: string; content: string }>;
+    let entries: ContextEntry[];
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
       const rows = this.sqliteStore.listRaw(context.name);
-      entries = getPhaseContextFromDocuments(rows, phase);
+      const versionsByPath = new Map(rows.map((row) => [row.relativePath, row.version]));
+      entries = getPhaseContextFromDocuments(rows, phase).map((entry) => ({
+        ...entry,
+        version: versionsByPath.get(entry.relativePath) ?? contentHash(entry.content),
+      }));
     } else {
-      entries = await getPhaseContext(context.rootDir, phase);
+      entries = (await getPhaseContext(context.rootDir, phase)).map((entry) => ({
+        ...entry,
+        version: contentHash(entry.content),
+      }));
     }
 
+    const totalMatched = entries.length;
+    const filteredEntries = entries.filter((entry) => knownVersions[entry.relativePath] !== entry.version);
+
     if (mode === 'full') {
-      return entries;
+      return {
+        entries: filteredEntries,
+        totalMatched,
+      };
     }
 
     const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
-    return entries.map((entry) => ({
-      relativePath: entry.relativePath,
-      content: globalPathSet.has(entry.relativePath) ? entry.content : summarizeContent(entry.content),
-    }));
+    return {
+      entries: filteredEntries.map((entry) => ({
+        ...entry,
+        content: globalPathSet.has(entry.relativePath) ? entry.content : summarizeContent(entry.content),
+      })),
+      totalMatched,
+    };
   }
 
   async reindex(project?: string): Promise<ReindexResult[]> {

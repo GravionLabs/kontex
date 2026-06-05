@@ -116,4 +116,12 @@ describe('summarizeContent', () => {
 
     expect(result).toContain('# Title Only');
   });
+
+  it('summarizes yaml-like content using key fields', () => {
+    const raw = 'name: assign-ticket\npurpose: Assign ticket to teammate.\nendpoint: POST /tickets/:id/assign\n';
+    const result = summarizeContent(raw);
+
+    expect(result).toContain('# assign-ticket');
+    expect(result).toContain('Assign ticket to teammate.');
+  });
 });

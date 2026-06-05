@@ -6,6 +6,7 @@ import { parse as parseYaml } from 'yaml';
 export type SpecType = 'api' | 'domain' | 'workflow' | 'validation' | 'event' | 'rule';
 export type SpecDirectory = 'docs' | 'specs';
 export type WorkflowPhase = 'analysis' | 'planning' | 'implementation' | 'testing' | 'verification';
+export type ContextMode = 'full' | 'summary';
 
 export const WORKFLOW_PHASES: WorkflowPhase[] = ['analysis', 'planning', 'implementation', 'testing', 'verification'];
 
@@ -47,6 +48,22 @@ export interface ReindexResult {
   updated: number;
   deleted: number;
   skipped: number;
+}
+
+export interface ContextEntry {
+  relativePath: string;
+  content: string;
+  version: string;
+}
+
+export interface ContextQueryOptions {
+  mode?: ContextMode;
+  knownVersions?: Record<string, string>;
+}
+
+export interface ContextQueryResult {
+  entries: ContextEntry[];
+  totalMatched: number;
 }
 
 export function getFileKind(relativePath: string): string {
@@ -120,11 +137,13 @@ export function summarizeContent(raw: string): string {
 
   let paragraph = '';
   const startIdx = headingIdx >= 0 ? headingIdx + 1 : 0;
-  for (let i = startIdx; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line && !line.startsWith('#')) {
-      paragraph = line;
-      break;
+  if (!looksLikeStructuredContent(raw)) {
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && !line.startsWith('#')) {
+        paragraph = line;
+        break;
+      }
     }
   }
 
@@ -134,7 +153,12 @@ export function summarizeContent(raw: string): string {
   if (heading) parts.push(`# ${heading}`);
   if (stripped) parts.push(stripped.slice(0, 120));
 
-  return parts.join('\n\n') || raw.slice(0, 120);
+  if (parts.length > 0) {
+    return parts.join('\n\n');
+  }
+
+  const structuredSummary = summarizeStructuredContent(raw);
+  return structuredSummary ?? raw.slice(0, 120);
 }
 
 function stripMarkdownDecorators(text: string): string {
@@ -146,6 +170,78 @@ function stripMarkdownDecorators(text: string): string {
     .replace(/_([^_]+)_/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
     .trim();
+}
+
+function summarizeStructuredContent(raw: string): string | null {
+  const parsed = parseInlineStructuredContent(raw);
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+    return null;
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const heading = firstStructuredString(record, ['title', 'name', 'endpoint', 'path', 'id']);
+  const paragraph = firstStructuredString(record, ['summary', 'description', 'purpose', 'rule', 'endpoint', 'path']);
+
+  const parts: string[] = [];
+  if (heading) {
+    parts.push(`# ${heading}`);
+  }
+
+  if (paragraph && paragraph !== heading) {
+    parts.push(stripMarkdownDecorators(paragraph).slice(0, 120));
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : null;
+}
+
+function looksLikeStructuredContent(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    return true;
+  }
+
+  const firstLine = trimmed.split('\n', 1)[0]?.trim() ?? '';
+  return /^[A-Za-z0-9_.-]+:\s*\S/.test(firstLine);
+}
+
+function parseInlineStructuredContent(raw: string): unknown {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!trimmed.includes(':')) {
+    return null;
+  }
+
+  try {
+    return parseYaml(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function firstStructuredString(record: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
 }
 
 export function toNormalizedContent(relativePath: string, raw: string): string {

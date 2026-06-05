@@ -1,56 +1,63 @@
 # Copilot Instructions
 
+## Monorepo Structure
+
+**kontex** is a pnpm monorepo with three packages:
+
+- **`@kontex/mcp-specs`** — MCP server for spec documents (`get-context`, `load-spec`, `search-specs`)
+- **`@kontex/cli-plugin`** — Copilot CLI plugin: prompt compression (preCompact hook) + session memory (cavemem)
+- **`@kontex/mcp-devtools`** — MCP server for dev tool execution (pytest, dotnet, npm, cargo, etc.)
+
 ## Using kontex MCP Tools
 
-When the `kontex` MCP server is available, **always call `get-context` before starting any task**:
+When the `@kontex/mcp-specs` MCP server is available, call `get-context` when you enter a new workflow phase:
 
 ```
 get-context(phase: "<phase>")
 ```
 
-Choose the phase that matches what you are about to do:
+Phases: `analysis`, `planning`, `implementation`, `testing`, `verification`.
 
-| Phase | When to use |
-|-------|-------------|
-| `analysis` | Understanding a problem, exploring code, diagnosing a bug |
-| `planning` | Designing a solution, creating an implementation plan |
-| `implementation` | Writing or modifying code |
-| `testing` | Writing or running tests |
-| `verification` | Final review, acceptance check, confirming requirements are met |
-
-Use `mode: "summary"` for a quick overview when many files are loaded, then call `load-spec` for the specific files you need in full detail.
+Use `mode: "summary"` for first pass, then `load-spec` for full files. On repeated calls, reuse `version` fingerprints as `knownVersions` to omit unchanged specs.
 
 ## Commands
 
 ```bash
-pnpm build             # compile TypeScript to dist/
-pnpm dev               # run with tsx watch (development)
-pnpm test              # run all tests once
-pnpm test:watch        # run tests in watch mode
-pnpm lint              # lint src/ and tests/
-pnpm format            # format src/ and tests/ (writes changes)
-pnpm check             # lint + format + organize imports (writes changes)
+pnpm build             # build all packages via -r
+pnpm dev               # dev mode all packages
+pnpm test              # test all packages
+pnpm test:watch        # watch mode test all
+pnpm lint              # lint all packages
+pnpm format            # format all packages
+pnpm check             # lint + format all
 
-# Run a single test file
-npx vitest run tests/services.test.ts
-npx vitest run tests/sqlite-store.test.ts
+# Single package (e.g., mcp-specs):
+cd packages/mcp-specs
+pnpm build
+pnpm dev
+pnpm test
+
+# Run a specific test:
+npx vitest run packages/mcp-specs/tests/services.test.ts
 ```
 
 ## Architecture
 
-This is a **TypeScript MCP (Model Context Protocol) server** that exposes spec documents from a project's `docs/` and `specs/` directories as tools to AI agents.
+**@kontex/mcp-specs:**
+- MCP server exposing spec documents from `docs/` and `specs/`
+- Entry: `packages/mcp-specs/src/index.ts` → `server.ts`
+- Tools: `get-context`, `load-spec`, `search-specs`, `list-specs`, etc.
+- Services: `spec-store.ts`, `sqlite-spec-store.ts`, `spec-types.ts`, `project-registry.ts`, etc.
 
-**Entry point**: `src/index.ts` → `src/server.ts` (`createServer`)
+**@kontex/cli-plugin:**
+- Copilot CLI plugin (registration via `.github/` or plugin marketplace)
+- `src/hooks/pre-compact.ts` — intercepts `/compact` to compress prompts before context reduction
+- `src/memory/cavemem.ts` — integrates cavemem npm package for persistent cross-session memory via SQLite
 
-**Core layers:**
-- `src/tools/` — MCP tool registration. Each file exports one `registerXxxTool(server, store)` function called in `createServer`.
-- `src/services/spec-store.ts` — `SpecStore` is the unified facade for all tools. It delegates to either filesystem or SQLite depending on `projectRegistry.mode`.
-- `src/services/sqlite-spec-store.ts` — `SqliteSpecStore` wraps `better-sqlite3` and maintains a `specs` table plus an `index_state` table for SHA-256-based change detection. Reindexing runs automatically on every read.
-- `src/services/project-registry.ts` — reads environment variables and resolves project names to absolute root directories. Project names are normalized to lowercase.
-- `src/services/spec-types.ts` — pure utility functions: `detectSpecType`, `resolveSpecVersion`, `toNormalizedContent`, `contentHash`.
-- `src/services/rules.ts` — centralizes Zod schemas, `SpecServerError`, path validation (`ensureAllowedSpecRelativePath`, `ensureAllowedRootPath`), and tool response helpers (`textContent`, `formatToolError`).
-- `src/services/markdown-loader.ts` — filesystem reads; only serves files under `docs/` and `specs/` with extensions `.md`, `.markdown`, `.yaml`, `.yml`, `.json`.
-- `src/services/teams-scanner.ts` — scans spec content for headings/keywords related to Teams/support context.
+**@kontex/mcp-devtools:**
+- MCP server for dev tool execution
+- Upcoming tools: pytest runner, dotnet runner, npm runner, cargo runner, etc.
+
 
 **Storage modes** (set via `SPEC_SERVER_MODE`):
 - `sqlite` **(default)**: files are indexed into a SQLite DB; reads are served from the DB, with automatic hash-diff updates and FTS5 + BM25 search.
@@ -69,6 +76,8 @@ This is a **TypeScript MCP (Model Context Protocol) server** that exposes spec d
 **Tool registration pattern**: each tool lives in its own file and exports a single `registerXxxTool(server: McpServer, store: SpecStore): void` function. No tool file holds state.
 
 **Error handling in tools**: always return `formatToolError(error, 'Fallback message.')` from catch blocks; never throw from a tool handler. `SpecServerError` messages are surfaced directly to the caller.
+
+**`get-context` contract**: tool returns per-file `version` fingerprints. On follow-up context loads, pass those values back via `knownVersions` to avoid resending unchanged context.
 
 **Path security**: all spec paths are validated twice — once in `rules.ts` (Zod schema + `ensureAllowedSpecRelativePath`) and once in `markdown-loader.ts` / `sqlite-spec-store.ts`. Never skip these checks when adding new file access.
 

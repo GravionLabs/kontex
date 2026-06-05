@@ -12,7 +12,7 @@ export function registerGetContextTool(server: McpServer, store: SpecStore): voi
       description:
         'Return aggregated project context for a given workflow phase. ' +
         'Loads global rules and conventions plus phase-specific specs from docs/ and specs/. ' +
-        'Call this at the start of any task to load relevant conventions before beginning work.',
+        'Use summary mode first for overview, then load individual specs as needed.',
       inputSchema: {
         project: projectSchema,
         phase: z
@@ -27,17 +27,27 @@ export function registerGetContextTool(server: McpServer, store: SpecStore): voi
           .default('full')
           .describe(
             'full (default): return complete file content. ' +
-              'summary: return first heading + first paragraph (~120 chars) per file — ' +
+              'summary: return condensed content for phase-specific files — ' +
               'use to get an overview, then call load-spec for details. ' +
               'Global context files (rules.md, conventions.md) are always returned in full.',
           ),
+        knownVersions: z
+          .record(z.string().regex(/^[0-9a-f]{64}$/))
+          .optional()
+          .describe(
+            'Optional map of relativePath -> SHA-256 version already known by client. ' +
+              'Matching unchanged files are omitted from response to avoid reloading duplicate context.',
+          ),
       },
     },
-    async ({ project, phase, mode }) => {
+    async ({ project, phase, mode, knownVersions }) => {
       try {
-        const entries = await store.getContext(project, phase as (typeof WORKFLOW_PHASES)[number], mode);
+        const { entries, totalMatched } = await store.getContext(project, phase as (typeof WORKFLOW_PHASES)[number], {
+          mode,
+          knownVersions,
+        });
 
-        if (entries.length === 0) {
+        if (totalMatched === 0) {
           return {
             content: [
               textContent(
@@ -52,7 +62,21 @@ export function registerGetContextTool(server: McpServer, store: SpecStore): voi
         }
 
         const projectLabel = project?.trim() || store.defaultProject;
-        const sections = entries.map((entry) => `## ${entry.relativePath}\n\n${entry.content.trim()}`);
+        if (entries.length === 0) {
+          return {
+            content: [
+              textContent(
+                `# project: ${projectLabel} | phase: ${phase}\n\n` +
+                  'All matching context already known from provided `knownVersions`. ' +
+                  'Call again without `knownVersions`, or use `load-spec` for specific files.',
+              ),
+            ],
+          };
+        }
+
+        const sections = entries.map(
+          (entry) => `## ${entry.relativePath}\nversion: ${entry.version}\n\n${entry.content.trim()}`,
+        );
         const text = `# project: ${projectLabel} | phase: ${phase}\n\n${sections.join('\n\n---\n\n')}`;
 
         return { content: [textContent(text)] };

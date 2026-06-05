@@ -8,3 +8,5 @@ tools:
     description: Search Markdown and YAML specs
   - name: teams-context
     description: Return dynamic support context
+  - name: compress-artifact
+    description: Compress prompts, skills, or agent descriptions by removing filler and shortening verbose terms
