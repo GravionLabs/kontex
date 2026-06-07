@@ -46,6 +46,9 @@ pnpm check
 cd packages/mcp-specs
 pnpm build
 pnpm test
+
+# Interactive MCP Inspector (from packages/mcp-specs)
+pnpm inspect                  # Opens web UI to test tools interactively
 ```
 
 ## Structure
