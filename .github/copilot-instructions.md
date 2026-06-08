@@ -30,6 +30,7 @@ pnpm test:watch        # watch mode test all
 pnpm lint              # lint all packages
 pnpm format            # format all packages
 pnpm check             # lint + format all
+pnpm inspect           # launch MCP Inspector web UI for interactive tool testing (from packages/mcp-specs)
 
 # Single package (e.g., mcp-specs):
 cd packages/mcp-specs
