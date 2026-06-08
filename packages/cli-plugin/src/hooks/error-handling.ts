@@ -1,6 +1,7 @@
+import type { ErrorOccurredPayload } from '@kontex/types';
+import { globalEventBus } from '@kontex/types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { ErrorOccurredPayload } from '../types/hooks.js';
 import { getCurrentSessionId } from './session-lifecycle.js';
 
 export function registerErrorHandlingHooks(server: McpServer): void {
@@ -16,7 +17,7 @@ export function registerErrorHandlingHooks(server: McpServer): void {
       },
     },
     async ({ errorType, message, stack }) => {
-      const _payload: ErrorOccurredPayload = {
+      const payload: ErrorOccurredPayload = {
         timestamp: Date.now(),
         sessionId: getCurrentSessionId(),
         phase: 'errorOccurred',
@@ -27,9 +28,7 @@ export function registerErrorHandlingHooks(server: McpServer): void {
         },
       };
 
-      // TODO: Fire event to listeners
-      // TODO: Implement recovery strategies based on errorType
-      // TODO: Update cavemem with error observation for future sessions
+      globalEventBus.emit(payload);
 
       return {
         content: [

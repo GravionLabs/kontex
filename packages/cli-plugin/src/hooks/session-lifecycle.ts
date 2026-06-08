@@ -1,7 +1,7 @@
+import type { SessionEndPayload, SessionStartPayload } from '@kontex/types';
+import { createSessionId, globalEventBus } from '@kontex/types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { SessionEndPayload, SessionStartPayload } from '../types/hooks.js';
-import { createSessionId } from '../types/hooks.js';
 
 let currentSessionId = createSessionId();
 
@@ -18,7 +18,7 @@ export function registerSessionLifecycleHooks(server: McpServer): void {
     },
     async ({ event, metadata }) => {
       if (event === 'start') {
-        const _payload: SessionStartPayload = {
+        const payload: SessionStartPayload = {
           timestamp: Date.now(),
           sessionId: currentSessionId,
           phase: 'sessionStart',
@@ -27,7 +27,9 @@ export function registerSessionLifecycleHooks(server: McpServer): void {
             ...metadata,
           },
         };
-        // TODO: Fire event to listeners (cavemem integration)
+
+        globalEventBus.emit(payload);
+
         return {
           content: [
             {
@@ -39,16 +41,22 @@ export function registerSessionLifecycleHooks(server: McpServer): void {
       }
 
       if (event === 'end') {
-        const _payload: SessionEndPayload = {
+        const metadataExitCode = (metadata as { exitCode?: number } | undefined)?.exitCode;
+
+        const payload: SessionEndPayload = {
           timestamp: Date.now(),
           sessionId: currentSessionId,
           phase: 'sessionEnd',
           data: {
-            exitCode: 0,
+            exitCode: metadataExitCode ?? 0,
             ...metadata,
           },
         };
-        // TODO: Fire event to listeners, flush memory to cavemem
+
+        globalEventBus.emit(payload);
+
+        resetSessionId();
+
         return {
           content: [
             {

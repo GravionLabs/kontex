@@ -1,6 +1,7 @@
+import type { CavemanLevel } from '@kontex/types';
+import { CAVEMAN_LEVELS, globalCavemanMode } from '@kontex/types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-
 import { compressArtifact } from '../services/compression.js';
 import { formatToolError, textContent } from '../services/rules.js';
 
@@ -15,14 +16,21 @@ export function registerCompressArtifactTool(server: McpServer): void {
       inputSchema: {
         kind: z.enum(['prompt', 'skill', 'agent']).describe('Artifact type: prompt, skill, or agent description'),
         content: z.string().min(1).max(50000).describe('Text content to compress'),
+        level: z
+          .enum(CAVEMAN_LEVELS as [string, ...string[]])
+          .optional()
+          .describe('Compression level (default: current caveman mode or full)'),
       },
     },
-    async ({ kind, content }) => {
+    async ({ kind, content, level }) => {
       try {
-        const result = compressArtifact(kind, content);
+        const resolvedLevel: CavemanLevel =
+          (level as CavemanLevel | undefined) ?? (globalCavemanMode.level !== 'off' ? globalCavemanMode.level : 'full');
+        const result = compressArtifact(kind, content, resolvedLevel);
 
         const summary =
           `## Compression Result\n\n` +
+          `**Level:** ${resolvedLevel}\n` +
           `**Original:** ${result.originalLen} chars\n` +
           `**Compressed:** ${result.compressedLen} chars\n` +
           `**Reduction:** ${result.ratio}%\n\n` +
