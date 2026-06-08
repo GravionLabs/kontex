@@ -1,6 +1,7 @@
+import type { PostToolUsePayload, PreToolUsePayload } from '@kontex/types';
+import { globalEventBus } from '@kontex/types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { PostToolUsePayload, PreToolUsePayload } from '../types/hooks.js';
 import { getCurrentSessionId } from './session-lifecycle.js';
 
 const toolTimings = new Map<string, number>();
@@ -19,7 +20,7 @@ export function registerToolLifecycleHooks(server: McpServer): void {
     async ({ toolName, args }) => {
       toolTimings.set(toolName, Date.now());
 
-      const _payload: PreToolUsePayload = {
+      const payload: PreToolUsePayload = {
         timestamp: Date.now(),
         sessionId: getCurrentSessionId(),
         phase: 'preToolUse',
@@ -29,7 +30,7 @@ export function registerToolLifecycleHooks(server: McpServer): void {
         },
       };
 
-      // TODO: Fire event to listeners
+      globalEventBus.emit(payload);
 
       return {
         content: [
@@ -57,7 +58,7 @@ export function registerToolLifecycleHooks(server: McpServer): void {
       const duration = Date.now() - startTime;
       toolTimings.delete(toolName);
 
-      const _payload: PostToolUsePayload = {
+      const payload: PostToolUsePayload = {
         timestamp: Date.now(),
         sessionId: getCurrentSessionId(),
         phase: 'postToolUse',
@@ -68,7 +69,7 @@ export function registerToolLifecycleHooks(server: McpServer): void {
         },
       };
 
-      // TODO: Fire event to listeners, update memory
+      globalEventBus.emit(payload);
 
       return {
         content: [

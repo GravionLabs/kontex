@@ -1,3 +1,6 @@
+import { globalCavemanMode, globalContextBudget } from '@kontex/types';
+
+import { compressToCaveman } from './compression.js';
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';
 import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -109,23 +112,35 @@ export class SpecStore {
     }
 
     const totalMatched = entries.length;
-    const filteredEntries = entries.filter((entry) => knownVersions[entry.relativePath] !== entry.version);
+    let resultEntries = entries.filter((entry) => knownVersions[entry.relativePath] !== entry.version);
 
-    if (mode === 'full') {
-      return {
-        entries: filteredEntries,
-        totalMatched,
-      };
+    // Auto-compress based on phase + caveman mode (skip in summary mode — already condensed)
+    if (mode !== 'summary') {
+      const effectiveLevel = globalCavemanMode.getEffectiveLevel(phase);
+      if (effectiveLevel !== 'off') {
+        resultEntries = resultEntries.map((entry) => ({
+          ...entry,
+          content: compressToCaveman(entry.content, effectiveLevel).compressed,
+        }));
+      }
     }
 
-    const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
-    return {
-      entries: filteredEntries.map((entry) => ({
+    // Summary mode: heading + first 120 chars (non-global files only)
+    if (mode === 'summary') {
+      const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
+      resultEntries = resultEntries.map((entry) => ({
         ...entry,
         content: globalPathSet.has(entry.relativePath) ? entry.content : summarizeContent(entry.content),
-      })),
-      totalMatched,
-    };
+      }));
+    }
+
+    // Budget panic: drop non-global files when compression is active
+    if (globalContextBudget.status === 'panic' && globalCavemanMode.level !== 'off') {
+      const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
+      resultEntries = resultEntries.filter((e) => globalPathSet.has(e.relativePath));
+    }
+
+    return { entries: resultEntries, totalMatched };
   }
 
   async reindex(project?: string): Promise<ReindexResult[]> {

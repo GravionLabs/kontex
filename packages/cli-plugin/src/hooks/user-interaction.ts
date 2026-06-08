@@ -1,6 +1,7 @@
+import type { UserPromptSubmittedPayload } from '@kontex/types';
+import { globalEventBus } from '@kontex/types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { UserPromptSubmittedPayload } from '../types/hooks.js';
 import { getCurrentSessionId } from './session-lifecycle.js';
 
 export function registerUserInteractionHooks(server: McpServer): void {
@@ -14,7 +15,7 @@ export function registerUserInteractionHooks(server: McpServer): void {
       },
     },
     async ({ prompt }) => {
-      const _payload: UserPromptSubmittedPayload = {
+      const payload: UserPromptSubmittedPayload = {
         timestamp: Date.now(),
         sessionId: getCurrentSessionId(),
         phase: 'userPromptSubmitted',
@@ -24,14 +25,13 @@ export function registerUserInteractionHooks(server: McpServer): void {
         },
       };
 
-      // TODO: Fire event to listeners (cavemem stores observations)
-      // TODO: Apply prompt compression/transformation if needed
+      globalEventBus.emit(payload);
 
       return {
         content: [
           {
             type: 'text',
-            text: `Prompt received (${_payload.data.length} chars)`,
+            text: `Prompt received (${payload.data.length} chars)`,
           },
         ],
       };

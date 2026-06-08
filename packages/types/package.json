@@ -1,0 +1,20 @@
+{
+  "name": "@kontex/types",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "biome check --write src/"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.0"
+  }
+}
