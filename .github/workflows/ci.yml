@@ -48,7 +48,7 @@ jobs:
         with:
           node-version: '24'
           package-manager: pnpm
-          test-command: pnpm -r test
+          test-command: pnpm -r build && pnpm -r test
 
   publish:
     name: Publish to GitHub Packages
