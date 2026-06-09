@@ -29,9 +29,9 @@ importers:
 
   packages/cli-plugin:
     dependencies:
-      '@kontex/mcp-specs':
+      '@kontex/caveman-compress':
         specifier: workspace:*
-        version: link:../mcp-specs
+        version: link:../caveman-compress
       '@kontex/types':
         specifier: workspace:*
         version: link:../types
@@ -82,6 +82,9 @@ importers:
 
   packages/mcp-specs:
     dependencies:
+      '@kontex/caveman-compress':
+        specifier: workspace:*
+        version: link:../caveman-compress
       '@kontex/types':
         specifier: workspace:*
         version: link:../types
@@ -1113,10 +1116,6 @@ packages:
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
-
-  commander@12.1.0:
-    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
-    engines: {node: '>=18'}
 
   commander@13.1.0:
     resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
@@ -3071,8 +3070,6 @@ snapshots:
       color-name: 1.1.4
 
   color-name@1.1.4: {}
-
-  commander@12.1.0: {}
 
   commander@13.1.0: {}
 
