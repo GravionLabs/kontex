@@ -24,6 +24,7 @@ jobs:
     needs: determine-version
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       checks: write
       pull-requests: write
     steps:
