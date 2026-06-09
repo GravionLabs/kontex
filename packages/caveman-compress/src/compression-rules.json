@@ -1,1 +1,89 @@
-{}
+{
+  "fillers": {
+    "lite": ["just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally"],
+    "full": [
+      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
+      "clearly", "obviously", "would be", "like", "somewhat"
+    ],
+    "ultra": [
+      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
+      "clearly", "obviously", "would be", "like", "somewhat",
+      "the fact that", "in order to", "as a matter of fact"
+    ],
+    "wenyan": [
+      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
+      "clearly", "obviously", "would be", "like", "somewhat",
+      "the fact that", "in order to", "as a matter of fact"
+    ]
+  },
+  "pleasantries": {
+    "lite": ["please", "thanks", "thank you"],
+    "full": ["please", "thanks", "thank you", "kindly", "sure", "certainly", "of course", "happy to", "i'd be happy"],
+    "ultra": ["please", "thanks", "thank you", "kindly", "sure", "certainly", "of course", "happy to", "i'd be happy"],
+    "wenyan": ["please", "thanks", "thank you", "kindly", "sure", "certainly", "of course", "happy to", "i'd be happy"]
+  },
+  "hedges": {
+    "lite": ["perhaps", "maybe", "might", "i think"],
+    "full": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears"],
+    "ultra": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears",
+      "it is important to", "it is crucial to", "it is essential to", "it's important to", "it's crucial to", "it's essential to"],
+    "wenyan": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears",
+      "it is important to", "it is crucial to", "it is essential to", "it's important to", "it's crucial to", "it's essential to"]
+  },
+  "leaders": {
+    "lite": ["i'll", "i will", "i can", "i'd", "you can", "we will", "we can", "let me", "let's"],
+    "full": ["i'll", "i will", "i can", "i'd", "you can", "we will", "we can", "let me", "let's"],
+    "ultra": ["i'll", "i will", "i can", "i'd", "you can", "we will", "we can", "let me", "let's"],
+    "wenyan": ["i'll", "i will", "i can", "i'd", "you can", "we will", "we can", "let me", "let's"]
+  },
+  "articles": {
+    "lite": [],
+    "full": ["a", "an", "the"],
+    "ultra": ["a", "an", "the"],
+    "wenyan": ["a", "an", "the"]
+  },
+  "abbreviations": {
+    "implementation": "impl",
+    "configuration": "config",
+    "database": "DB",
+    "authentication": "auth",
+    "authorization": "authz",
+    "request": "req",
+    "response": "res",
+    "variable": "var",
+    "parameter": "param",
+    "argument": "arg",
+    "function": "fn",
+    "application": "app",
+    "information": "info",
+    "functionality": "function",
+    "framework": "fw",
+    "library": "lib",
+    "return": "→",
+    "returns": "→",
+    "caused by": "←",
+    "due to": "←",
+    "if you": "if",
+    "you should": "should",
+    "you must": "must",
+    "you can": "can"
+  },
+  "expansions": {
+    "impl": "implementation",
+    "config": "configuration",
+    "DB": "database",
+    "auth": "authentication",
+    "authz": "authorization",
+    "req": "request",
+    "res": "response",
+    "var": "variable",
+    "param": "parameter",
+    "arg": "argument",
+    "fn": "function",
+    "app": "application",
+    "info": "information",
+    "fw": "framework",
+    "lib": "library",
+    "→": "returns"
+  }
+}
