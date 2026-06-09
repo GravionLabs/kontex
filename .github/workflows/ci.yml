@@ -41,14 +41,14 @@ jobs:
         with:
           node-version: '24'
           package-manager: pnpm
-          build-command: pnpm build -r
+          build-command: pnpm -r build
 
       - name: Test
         uses: GravionLabs/ci/node/test@main
         with:
           node-version: '24'
           package-manager: pnpm
-          test-command: pnpm test -r
+          test-command: pnpm -r test
 
   publish:
     name: Publish to GitHub Packages
