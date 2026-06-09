@@ -1,2 +1,8 @@
 #!/usr/bin/env node
-// TODO: issue #10 — import '../dist/compress-cli.js';
+import { main } from '../dist/compress-cli.js';
+
+main().catch((err) => {
+  const msg = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`Error: ${msg}\n`);
+  process.exit(1);
+});
