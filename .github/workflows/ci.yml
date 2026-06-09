@@ -1,0 +1,93 @@
+name: CI + Publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.version.outputs.semver }}
+      npm-version: ${{ steps.version.outputs.npm-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: GravionLabs/ci/versioning/determine-version@main
+        id: version
+
+  ci:
+    name: Build & Test
+    needs: determine-version
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        uses: GravionLabs/ci/node/build@main
+        with:
+          node-version: '24'
+          package-manager: pnpm
+          build-command: pnpm build -r
+
+      - name: Test
+        uses: GravionLabs/ci/node/test@main
+        with:
+          node-version: '24'
+          package-manager: pnpm
+          test-command: pnpm test -r
+
+  publish:
+    name: Publish to GitHub Packages
+    needs: [determine-version, ci]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://npm.pkg.github.com
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build -r
+
+      - name: Set version across packages
+        run: |
+          VERSION="${{ needs.determine-version.outputs.npm-version }}"
+          for pkg in packages/*/package.json; do
+            if ! grep -q '"private": true' "$pkg"; then
+              node -e "
+                const p = require('$pkg');
+                p.version = '$VERSION';
+                require('fs').writeFileSync('$pkg', JSON.stringify(p, null, 2) + '\n');
+              "
+            fi
+          done
+
+      - run: pnpm publish -r --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    needs: [determine-version, publish]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: GravionLabs/ci/versioning/gh-release@main
+        with:
+          version: ${{ needs.determine-version.outputs.semver }}

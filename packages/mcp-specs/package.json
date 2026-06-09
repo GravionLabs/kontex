@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "exports": {
     ".": "./dist/index.js",
     "./services/compression.js": "./dist/services/compression.js"
