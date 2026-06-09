@@ -1,6 +1,6 @@
-import type { CavemanLevel, CompressionResult, Segment } from './types.js';
-import { tokenize, detokenize } from './tokenize.js';
 import rules from './compression-rules.json' with { type: 'json' };
+import { detokenize, tokenize } from './tokenize.js';
+import type { CavemanLevel, CompressionResult, Segment } from './types.js';
 
 type RuleCategory = 'fillers' | 'pleasantries' | 'hedges' | 'leaders' | 'articles';
 
@@ -62,12 +62,7 @@ function extractFrontmatter(content: string): { frontmatter: string; body: strin
   return { frontmatter: '', body: content };
 }
 
-function processBody(
-  body: string,
-  level: CavemanLevel,
-  categories: RuleCategory[],
-  useAbbreviations: boolean,
-): string {
+function processBody(body: string, level: CavemanLevel, categories: RuleCategory[], useAbbreviations: boolean): string {
   const segments = tokenize(body);
   const processed: Segment[] = segments.map((seg) => {
     if (seg.preserved || seg.kind !== 'prose') return seg;

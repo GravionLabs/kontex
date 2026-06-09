@@ -1,6 +1,6 @@
 {
   "name": "kontex",
   "transport": "stdio",
-  "command": "pnpm",
-  "args": ["run", "start"]
+  "command": "node",
+  "args": ["packages/mcp-specs/dist/index.js"]
 }

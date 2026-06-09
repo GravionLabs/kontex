@@ -24,7 +24,7 @@ const RULES: Rule[] = [
   {
     kind: 'identifier',
     priority: 40,
-    re: /\b[A-Za-z_][A-Za-z0-9_]*[-_][A-Za-z0-9_\-]+\b|\b[a-z]+[A-Z][A-Za-z0-9]*\b/g,
+    re: /\b[A-Za-z_][A-Za-z0-9_]*[-_][A-Za-z0-9_-]+\b|\b[a-z]+[A-Z][A-Za-z0-9]*\b/g,
   },
 ];
 

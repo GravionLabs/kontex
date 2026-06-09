@@ -2,18 +2,58 @@
   "fillers": {
     "lite": ["just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally"],
     "full": [
-      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
-      "clearly", "obviously", "would be", "like", "somewhat"
+      "just",
+      "really",
+      "basically",
+      "actually",
+      "simply",
+      "quite",
+      "very",
+      "essentially",
+      "literally",
+      "clearly",
+      "obviously",
+      "would be",
+      "like",
+      "somewhat"
     ],
     "ultra": [
-      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
-      "clearly", "obviously", "would be", "like", "somewhat",
-      "the fact that", "in order to", "as a matter of fact"
+      "just",
+      "really",
+      "basically",
+      "actually",
+      "simply",
+      "quite",
+      "very",
+      "essentially",
+      "literally",
+      "clearly",
+      "obviously",
+      "would be",
+      "like",
+      "somewhat",
+      "the fact that",
+      "in order to",
+      "as a matter of fact"
     ],
     "wenyan": [
-      "just", "really", "basically", "actually", "simply", "quite", "very", "essentially", "literally",
-      "clearly", "obviously", "would be", "like", "somewhat",
-      "the fact that", "in order to", "as a matter of fact"
+      "just",
+      "really",
+      "basically",
+      "actually",
+      "simply",
+      "quite",
+      "very",
+      "essentially",
+      "literally",
+      "clearly",
+      "obviously",
+      "would be",
+      "like",
+      "somewhat",
+      "the fact that",
+      "in order to",
+      "as a matter of fact"
     ]
   },
   "pleasantries": {
@@ -24,11 +64,51 @@
   },
   "hedges": {
     "lite": ["perhaps", "maybe", "might", "i think"],
-    "full": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears"],
-    "ultra": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears",
-      "it is important to", "it is crucial to", "it is essential to", "it's important to", "it's crucial to", "it's essential to"],
-    "wenyan": ["perhaps", "maybe", "might", "i think", "could potentially", "would like to", "in my opinion", "it seems", "it appears",
-      "it is important to", "it is crucial to", "it is essential to", "it's important to", "it's crucial to", "it's essential to"]
+    "full": [
+      "perhaps",
+      "maybe",
+      "might",
+      "i think",
+      "could potentially",
+      "would like to",
+      "in my opinion",
+      "it seems",
+      "it appears"
+    ],
+    "ultra": [
+      "perhaps",
+      "maybe",
+      "might",
+      "i think",
+      "could potentially",
+      "would like to",
+      "in my opinion",
+      "it seems",
+      "it appears",
+      "it is important to",
+      "it is crucial to",
+      "it is essential to",
+      "it's important to",
+      "it's crucial to",
+      "it's essential to"
+    ],
+    "wenyan": [
+      "perhaps",
+      "maybe",
+      "might",
+      "i think",
+      "could potentially",
+      "would like to",
+      "in my opinion",
+      "it seems",
+      "it appears",
+      "it is important to",
+      "it is crucial to",
+      "it is essential to",
+      "it's important to",
+      "it's crucial to",
+      "it's essential to"
+    ]
   },
   "leaders": {
     "lite": ["i'll", "i will", "i can", "i'd", "you can", "we will", "we can", "let me", "let's"],
