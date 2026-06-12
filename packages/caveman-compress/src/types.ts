@@ -1,4 +1,4 @@
-export type CavemanLevel = 'off' | 'lite' | 'full' | 'ultra' | 'wenyan';
+export type { CavemanLevel } from '@kontex/types';
 
 export interface CompressionResult {
   compressed: string;
