@@ -12,6 +12,7 @@
     "prepublish": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ci": "vitest run --coverage",
     "check": "biome check --write src/"
   },
   "publishConfig": {
@@ -22,6 +23,7 @@
     "src"
   ],
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
     "typescript": "^6.0.0",
     "vitest": "^4.0.0"
   }

@@ -1,0 +1,137 @@
+name: CI + Publish
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.version.outputs.semver }}
+      npm-version: ${{ steps.version.outputs.npm-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: GravionLabs/ci/versioning/determine-version@main
+        id: version
+
+  ci:
+    name: Build & Test
+    needs: determine-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Build
+        uses: GravionLabs/ci/node/build@main
+        with:
+          node-version: '24'
+          package-manager: pnpm
+          build-command: pnpm -r build
+
+      - name: Test
+        run: pnpm -r test:ci
+
+      - name: Collect test results
+        run: |
+          mkdir -p test-results coverage
+          for dir in packages/*/; do
+            pkg=$(basename "$dir")
+            [ -f "$dir/test-results/junit.xml" ] && cp "$dir/test-results/junit.xml" "test-results/$pkg-junit.xml"
+            [ -f "$dir/coverage/cobertura-coverage.xml" ] && cp "$dir/coverage/cobertura-coverage.xml" "coverage/$pkg-cobertura.xml"
+          done
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: test-results/*-junit.xml
+          reporter: jest-junit
+          fail-on-error: false
+
+      - name: Coverage summary
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/*-cobertura.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          output: both
+          indicators: true
+          thresholds: '50 75'
+
+  publish:
+    name: Publish to GitHub Packages
+    needs: [determine-version, ci]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://npm.pkg.github.com
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build -r
+
+      - name: Set version across packages
+        run: |
+          VERSION="${{ needs.determine-version.outputs.npm-version }}"
+          for pkg in packages/*/package.json; do
+            if ! grep -q '"private": true' "$pkg"; then
+              node -e "
+                const p = require('$pkg');
+                p.version = '$VERSION';
+                require('fs').writeFileSync('$pkg', JSON.stringify(p, null, 2) + '\n');
+              "
+            fi
+          done
+
+      - run: pnpm publish -r --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create GitHub Release
+    needs: [determine-version, publish]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: GravionLabs/ci/versioning/gh-release@main
+        with:
+          version: ${{ needs.determine-version.outputs.semver }}

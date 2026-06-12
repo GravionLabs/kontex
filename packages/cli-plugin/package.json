@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ci": "vitest run --coverage",
     "lint": "biome lint src/",
     "format": "biome format --write src/",
     "check": "biome check --write src/"
@@ -21,6 +25,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "typescript": "^6.0.0",
     "vitest": "^4.0.0"
   }
