@@ -1,18 +1,26 @@
 {
   "name": "@kontex/types",
   "version": "1.0.0",
+  "description": "Shared types, state management, and event bus for kontex projects",
   "type": "module",
-  "private": true,
   "main": "./dist/index.js",
   "exports": {
     ".": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
+    "prepublish": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "biome check --write src/"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "devDependencies": {
     "typescript": "^6.0.0",
     "vitest": "^4.0.0"
