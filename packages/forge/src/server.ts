@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { DevToolsRegistry } from './services/devtools-registry.js';
 import { registerBashRunnerTool } from './tools/bash-runner.js';
 
-export const SERVER_NAME = '@kontex/mcp-devtools';
+export const SERVER_NAME = '@kontex/forge';
 export const SERVER_VERSION = '1.0.0';
 
 export function createServer(rootDir = process.cwd()): McpServer {
