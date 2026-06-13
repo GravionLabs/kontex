@@ -336,7 +336,7 @@ describe('sqlite spec store', () => {
     };
 
     const root = await createProjectRoot('mcp-embed-', {
-      'docs/rules.md': '# Rules\nEmbed this content.',
+      'docs/rules.md': '# Rules\n' + 'x'.repeat(100) + '\nEmbed this content for embedding tests.',
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
@@ -354,13 +354,13 @@ describe('sqlite spec store', () => {
     }>;
     expect(sources.length).toBe(1);
     expect(sources[0].source_type).toBe('spec');
-    expect(sources[0].source_key).toBe('docs/rules.md');
+    expect(sources[0].source_key).toMatch(/^docs\/rules\.md#chunk-\d+$/);
 
     const embeddings = db.prepare('SELECT model, vector FROM embeddings').all() as Array<{
       model: string;
       vector: string;
     }>;
-    expect(embeddings.length).toBe(1);
+    expect(embeddings.length).toBeGreaterThanOrEqual(1);
     expect(embeddings[0].model).toBe('test-model');
     expect(JSON.parse(embeddings[0].vector)).toEqual([0.1, 0.2, 0.3, 0.4]);
     db.close();
@@ -376,7 +376,7 @@ describe('sqlite spec store', () => {
     };
 
     const root = await createProjectRoot('mcp-cosim-', {
-      'docs/rules.md': '# Rules\nContent about embedding.',
+      'docs/rules.md': '# Rules\n' + 'x'.repeat(100) + '\nContent about embedding for cosine similarity search tests.',
     });
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
@@ -388,7 +388,7 @@ describe('sqlite spec store', () => {
     const results = await store.searchSpecs('proj', 'embedding query', 5);
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0].relativePath).toBe('docs/rules.md');
+    expect(results[0].relativePath).toMatch(/^docs\/rules\.md/);
     expect(typeof results[0].score).toBe('number');
   });
 });
