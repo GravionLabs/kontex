@@ -105,7 +105,7 @@ jobs:
           registry-url: https://npm.pkg.github.com
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build -r
+      - run: pnpm build
 
       - name: Set version across packages
         run: |
