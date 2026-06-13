@@ -1,6 +1,8 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
+import type { EmbeddingProvider } from '@kontex/types';
+
 import Database from 'better-sqlite3';
 
 import { listSpecFiles, loadSpecFile } from './markdown-loader.js';
@@ -15,6 +17,7 @@ import {
   type SpecFileInfo,
   toNormalizedContent,
 } from './spec-types.js';
+import { topK } from './embedding-search.js';
 
 interface StoredSpecRow {
   path: string;
@@ -40,7 +43,10 @@ function sanitizeFtsQuery(query: string): string {
 export class SqliteSpecStore {
   private readonly db: Database.Database;
 
-  constructor(private readonly dbPath: string) {
+  constructor(
+    private readonly dbPath: string,
+    private readonly embeddingProvider?: EmbeddingProvider,
+  ) {
     mkdirSync(path.dirname(this.dbPath), { recursive: true });
     this.db = new Database(dbPath);
     this.db.pragma('foreign_keys = ON');
@@ -76,11 +82,31 @@ export class SqliteSpecStore {
     const deleteFts = this.db.prepare('DELETE FROM specs_fts WHERE rowid = ?');
     const insertFts = this.db.prepare('INSERT INTO specs_fts(rowid, path, raw, project) VALUES (?, ?, ?, ?)');
     const deleteSpec = this.db.prepare('DELETE FROM specs WHERE project = ? AND path = ?');
+
+    const upsertSource = this.db.prepare(`
+      INSERT INTO sources (source_type, project, source_key, content, version, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(source_type, project, source_key) DO UPDATE SET
+        content = excluded.content,
+        version = excluded.version,
+        updated_at = excluded.updated_at
+    `);
+    const getSourceId = this.db.prepare(
+      'SELECT id FROM sources WHERE source_type = ? AND project = ? AND source_key = ?',
+    );
+    const upsertEmbedding = this.db.prepare(`
+      INSERT INTO embeddings (source_id, model, vector)
+      VALUES (?, ?, ?)
+      ON CONFLICT(source_id, model) DO UPDATE SET
+        vector = excluded.vector
+    `);
+
     const knownPaths = this.db.prepare('SELECT id, path FROM specs WHERE project = ?').all(project) as KnownPathRow[];
     const seenPaths = new Set<string>();
 
     let updated = 0;
     let skipped = 0;
+    const updatedSources: Array<{ sourceId: number; content: string }> = [];
     for (const file of files) {
       const loaded = await loadSpecFile(rootDir, file.relativePath);
       const hash = contentHash(loaded.content);
@@ -99,7 +125,23 @@ export class SqliteSpecStore {
       const row = getSpecId.get(project, loaded.relativePath) as { id: number };
       deleteFts.run(row.id);
       insertFts.run(row.id, loaded.relativePath, loaded.content, project);
+
+      upsertSource.run('spec', project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
+      const sourceRow = getSourceId.get('spec', project, loaded.relativePath) as { id: number } | undefined;
+
+      if (this.embeddingProvider && sourceRow) {
+        updatedSources.push({ sourceId: sourceRow.id, content: loaded.content });
+      }
+
       updated += 1;
+    }
+
+    if (updatedSources.length > 0 && this.embeddingProvider) {
+      const vectors = await this.embeddingProvider.embed(updatedSources.map((s) => s.content));
+      const vectorJson = vectors.map((v) => JSON.stringify(v));
+      for (let i = 0; i < updatedSources.length; i++) {
+        upsertEmbedding.run(updatedSources[i].sourceId, this.embeddingProvider.model, vectorJson[i]);
+      }
     }
 
     let deleted = 0;
@@ -160,7 +202,11 @@ export class SqliteSpecStore {
     };
   }
 
-  searchSpecs(project: string, query: string, limit: number): SearchResult[] {
+  async searchSpecs(project: string, query: string, limit: number): Promise<SearchResult[]> {
+    if (this.embeddingProvider) {
+      return this.searchSpecsEmbedding(project, query, limit);
+    }
+
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
 
@@ -187,6 +233,47 @@ export class SqliteSpecStore {
     } catch {
       return [];
     }
+  }
+
+  private async searchSpecsEmbedding(project: string, query: string, limit: number): Promise<SearchResult[]> {
+    const provider = this.embeddingProvider;
+    if (!provider) return [];
+
+    const stored = this.db
+      .prepare(
+        `SELECT e.source_id, e.vector, s.source_key, s.content
+         FROM embeddings e
+         JOIN sources s ON e.source_id = s.id
+         WHERE s.source_type = 'spec' AND s.project = ? AND e.model = ?`,
+      )
+      .all(project, provider.model) as Array<{
+      source_id: number;
+      vector: string;
+      source_key: string;
+      content: string;
+    }>;
+
+    if (stored.length === 0) return [];
+
+    const queryVec = await provider.embed([query]);
+    if (queryVec.length === 0) return [];
+
+    const items = stored.map((row) => ({
+      sourceId: row.source_id,
+      vector: JSON.parse(row.vector) as number[],
+    }));
+    const top = topK(queryVec[0], items, limit);
+
+    const resultMap = new Map(stored.map((row) => [row.source_id, { key: row.source_key, content: row.content }]));
+    return top.map((match) => {
+      const info = resultMap.get(match.sourceId);
+      return {
+        relativePath: info?.key ?? '',
+        lineNumber: 0,
+        excerpt: (info?.content ?? '').slice(0, 200),
+        score: match.score,
+      };
+    });
   }
 
   listRaw(project: string): Array<{ relativePath: string; content: string; version: string }> {
@@ -233,6 +320,26 @@ export class SqliteSpecStore {
       INSERT INTO specs_fts(rowid, path, raw, project)
         SELECT id, path, raw, project FROM specs
         WHERE id NOT IN (SELECT rowid FROM specs_fts);
+
+      CREATE TABLE IF NOT EXISTS sources (
+        id INTEGER PRIMARY KEY,
+        source_type TEXT NOT NULL,
+        project TEXT NOT NULL,
+        source_key TEXT NOT NULL,
+        content TEXT NOT NULL,
+        version TEXT NOT NULL,
+        updated_at DATETIME NOT NULL,
+        UNIQUE(source_type, project, source_key)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sources_type_project ON sources(source_type, project);
+
+      CREATE TABLE IF NOT EXISTS embeddings (
+        source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+        model TEXT NOT NULL,
+        vector BLOB NOT NULL,
+        PRIMARY KEY (source_id, model)
+      );
     `);
   }
 }

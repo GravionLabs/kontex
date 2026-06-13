@@ -1,3 +1,4 @@
+import type { EmbeddingProvider } from '@kontex/types';
 import { globalCavemanMode, globalContextBudget } from '@kontex/types';
 
 import { compressToCaveman } from './compression.js';
@@ -23,9 +24,12 @@ export class SpecStore {
   private readonly sqliteStore: SqliteSpecStore | null;
   private readonly sqliteReady: Promise<void> | null;
 
-  constructor(private readonly projectRegistry: ProjectRegistry) {
+  constructor(
+    private readonly projectRegistry: ProjectRegistry,
+    private readonly embeddingProvider?: EmbeddingProvider,
+  ) {
     if (projectRegistry.mode === 'sqlite') {
-      this.sqliteStore = new SqliteSpecStore(projectRegistry.sqlitePath);
+      this.sqliteStore = new SqliteSpecStore(projectRegistry.sqlitePath, embeddingProvider);
       this.sqliteReady = this.sqliteStore.ensureParentDirectory();
       return;
     }

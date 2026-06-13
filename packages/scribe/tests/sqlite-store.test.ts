@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import type { EmbeddingProvider } from '@kontex/types';
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -304,5 +305,90 @@ describe('sqlite spec store', () => {
 
     expect(deduped.totalMatched).toBe(initial.entries.length);
     expect(deduped.entries).toEqual([]);
+  });
+
+  it('falls back to FTS5 search when no embedding provider', async () => {
+    const root = await createProjectRoot('mcp-noemb-', {
+      'docs/auth.md': '# Auth\nAuthentication required.',
+      'docs/overview.md': '# Overview\nSystem overview.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const results = await store.searchSpecs('proj', 'Authentication', 5);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].relativePath).toBe('docs/auth.md');
+    expect(results[0].score).toBeDefined();
+  });
+
+  it('reindex embeds content when embedding provider is present', async () => {
+    const mockProvider: EmbeddingProvider = {
+      model: 'test-model',
+      dimensions: 4,
+      async embed(texts: string[]) {
+        return texts.map(() => [0.1, 0.2, 0.3, 0.4]);
+      },
+    };
+
+    const root = await createProjectRoot('mcp-embed-', {
+      'docs/rules.md': '# Rules\nEmbed this content.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root), mockProvider);
+    await store.listSpecs('proj');
+
+    const db = new Database(dbPath, { readonly: false });
+    const sources = db.prepare("SELECT source_type, source_key FROM sources WHERE project = 'proj'").all() as Array<{
+      source_type: string;
+      source_key: string;
+    }>;
+    expect(sources.length).toBe(1);
+    expect(sources[0].source_type).toBe('spec');
+    expect(sources[0].source_key).toBe('docs/rules.md');
+
+    const embeddings = db.prepare('SELECT model, vector FROM embeddings').all() as Array<{
+      model: string;
+      vector: string;
+    }>;
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0].model).toBe('test-model');
+    expect(JSON.parse(embeddings[0].vector)).toEqual([0.1, 0.2, 0.3, 0.4]);
+    db.close();
+  });
+
+  it('search uses cosine similarity when embedding provider present', async () => {
+    const mockProvider: EmbeddingProvider = {
+      model: 'test-model',
+      dimensions: 4,
+      async embed(texts: string[]) {
+        return texts.map(() => [0.1, 0.2, 0.3, 0.4]);
+      },
+    };
+
+    const root = await createProjectRoot('mcp-cosim-', {
+      'docs/rules.md': '# Rules\nContent about embedding.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root), mockProvider);
+    const results = await store.searchSpecs('proj', 'embedding query', 5);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].relativePath).toBe('docs/rules.md');
+    expect(typeof results[0].score).toBe('number');
   });
 });

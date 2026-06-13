@@ -1,3 +1,4 @@
+import type { EmbeddingProvider } from '@kontex/types';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { ProjectRegistry } from './services/project-registry.js';
@@ -13,10 +14,10 @@ import { registerTeamsContextTool } from './tools/teams-context.js';
 export const SERVER_NAME = 'kontex';
 export const SERVER_VERSION = '1.0.0';
 
-export function createServer(rootDir = process.cwd()): McpServer {
+export function createServer(rootDir = process.cwd(), embeddingProvider?: EmbeddingProvider): McpServer {
   const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
   const projectRegistry = new ProjectRegistry(rootDir);
-  const store = new SpecStore(projectRegistry);
+  const store = new SpecStore(projectRegistry, embeddingProvider);
 
   registerListSpecsTool(server, store);
   registerLoadSpecTool(server, store);
