@@ -127,9 +127,14 @@ jobs:
             fi
           done
 
+      - name: Configure npm auth
+        run: |
+          pnpm config set npm-auth-type basic --location=project
+          pnpm config set //npm.pkg.github.com/:_authToken ${{ secrets.GH_PAT }} --location=project
+
       - run: pnpm publish -r --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
 
   release:
     name: Create GitHub Release
