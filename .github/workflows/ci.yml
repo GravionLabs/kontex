@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      force-publish:
+        description: 'Publish packages even on non-main branches'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   determine-version:
@@ -91,7 +97,7 @@ jobs:
   publish:
     name: Publish to GitHub Packages
     needs: [determine-version, ci]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.force-publish == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
