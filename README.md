@@ -4,19 +4,19 @@ A **pnpm monorepo** providing prompt compression, persistent session memory, and
 
 ## Packages
 
-### `@kontex/mcp-specs`
+### `@kontex/scribe`
 MCP server that exposes AI-friendly spec documents from a project's `docs/` and `specs/` directories.
 - **Tools**: `get-context` (phases), `load-spec`, `search-specs`, `list-specs`, `compress-artifact`
 - **Storage**: SQLite + FTS5 or filesystem mode
 - **Use case**: Load project context efficiently without re-reading files every turn
 
-### `@kontex/cli-plugin`
+### `@kontex/herald`
 GitHub Copilot CLI plugin for prompt compression and persistent session memory.
 - **preCompact hook**: Compresses prompts before `/compact` context reduction
 - **cavemem integration**: Persistent cross-session memory via local SQLite + caveman compression
 - **Use case**: Reduce token spend and remember prior decisions across sessions
 
-### `@kontex/mcp-devtools`
+### `@kontex/forge`
 MCP server for efficient dev tool execution (pytest, dotnet build, npm run, cargo, etc.).
 - **Tools**: Planned — pytest, dotnet, npm, cargo runners
 - **Use case**: Execute build/test commands from AI agents without manual CLI work
@@ -43,11 +43,11 @@ pnpm format
 pnpm check
 
 # Work in a single package
-cd packages/mcp-specs
+cd packages/scribe
 pnpm build
 pnpm test
 
-# Interactive MCP Inspector (from packages/mcp-specs)
+# Interactive MCP Inspector (from packages/scribe)
 pnpm inspect                  # Opens web UI to test tools interactively
 ```
 
@@ -56,9 +56,9 @@ pnpm inspect                  # Opens web UI to test tools interactively
 ```
 kontex/
 ├── packages/
-│   ├── mcp-specs/          # @kontex/mcp-specs — MCP server for spec docs
-│   ├── cli-plugin/         # @kontex/cli-plugin — CLI plugin with cavemem
-│   └── mcp-devtools/       # @kontex/mcp-devtools — MCP server for dev tools
+│   ├── scribe/             # @kontex/scribe — MCP server for spec docs
+│   ├── herald/             # @kontex/herald — CLI plugin with cavemem
+│   └── forge/              # @kontex/forge — MCP server for dev tools
 ├── pnpm-workspace.yaml     # Workspace config
 ├── tsconfig.base.json      # Shared TypeScript config
 ├── biome.json              # Linter & formatter

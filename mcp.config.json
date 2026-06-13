@@ -2,5 +2,5 @@
   "name": "kontex",
   "transport": "stdio",
   "command": "node",
-  "args": ["packages/mcp-specs/dist/index.js"]
+  "args": ["packages/scribe/dist/index.js"]
 }
