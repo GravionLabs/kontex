@@ -110,7 +110,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          registry-url: https://npm.pkg.github.com
 
       - run: pnpm install --frozen-lockfile
 
@@ -127,14 +126,11 @@ jobs:
             fi
           done
 
-      - name: Configure npm auth
-        run: |
-          pnpm config set npm-auth-type basic --location=project
-          pnpm config set //npm.pkg.github.com/:_authToken ${{ secrets.GH_PAT }} --location=project
-
-      - run: pnpm publish -r --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+      - uses: GravionLabs/ci/node/publish@main
+        with:
+          package-manager: pnpm
+          npm-token: ${{ secrets.GH_PAT }}
+          publish-command: pnpm publish -r --no-git-checks
 
   release:
     name: Create GitHub Release
