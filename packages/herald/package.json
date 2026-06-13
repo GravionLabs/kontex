@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepublish": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --coverage",
