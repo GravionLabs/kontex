@@ -17,6 +17,7 @@ import {
   type SpecFileInfo,
   toNormalizedContent,
 } from './spec-types.js';
+import { chunkMarkdown } from './chunk-utils.js';
 import { topK } from './embedding-search.js';
 
 interface StoredSpecRow {
@@ -126,11 +127,24 @@ export class SqliteSpecStore {
       deleteFts.run(row.id);
       insertFts.run(row.id, loaded.relativePath, loaded.content, project);
 
-      upsertSource.run('spec', project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
-      const sourceRow = getSourceId.get('spec', project, loaded.relativePath) as { id: number } | undefined;
+      if (this.embeddingProvider) {
+        const deleteOldSource = this.db.prepare(
+          'DELETE FROM sources WHERE source_type = ? AND project = ? AND source_key = ?',
+        );
+        deleteOldSource.run('spec', project, loaded.relativePath);
 
-      if (this.embeddingProvider && sourceRow) {
-        updatedSources.push({ sourceId: sourceRow.id, content: loaded.content });
+        const chunks = chunkMarkdown(loaded.content);
+        for (const chunk of chunks) {
+          const chunkKey = `${loaded.relativePath}#chunk-${chunk.chunkIndex}`;
+          const chunkHash = contentHash(chunk.content);
+          upsertSource.run('spec', project, chunkKey, chunk.content, chunkHash, loaded.updatedAt);
+          const sourceRow = getSourceId.get('spec', project, chunkKey) as { id: number } | undefined;
+          if (sourceRow) {
+            updatedSources.push({ sourceId: sourceRow.id, content: chunk.content });
+          }
+        }
+      } else {
+        upsertSource.run('spec', project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
       }
 
       updated += 1;
@@ -144,6 +158,10 @@ export class SqliteSpecStore {
       }
     }
 
+    const deleteOrphanedSources = this.db.prepare(
+      'DELETE FROM sources WHERE source_type = ? AND project = ? AND source_key LIKE ?',
+    );
+
     let deleted = 0;
     for (const entry of knownPaths) {
       if (seenPaths.has(entry.path)) {
@@ -152,6 +170,8 @@ export class SqliteSpecStore {
 
       deleteFts.run(entry.id);
       deleteSpec.run(project, entry.path);
+      deleteOrphanedSources.run('spec', project, `${entry.path}#%`);
+      deleteOrphanedSources.run('spec', project, entry.path);
       deleted += 1;
     }
 
@@ -268,7 +288,7 @@ export class SqliteSpecStore {
     return top.map((match) => {
       const info = resultMap.get(match.sourceId);
       return {
-        relativePath: info?.key ?? '',
+        relativePath: (info?.key ?? '').replace(/#chunk-\d+$/, ''),
         lineNumber: 0,
         excerpt: (info?.content ?? '').slice(0, 200),
         score: match.score,
