@@ -1,0 +1,15 @@
+name: Test Reusable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    uses: GravionLabs/ci/.github/workflows/node-package.yml@main
+    with:
+      node-version: '24'
+      package-manager: pnpm
+      build-command: echo "hello"
+      run-tests: false
+    secrets:
+      npm-token: ${{ secrets.GH_PAT }}
