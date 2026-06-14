@@ -112,7 +112,7 @@ jobs:
           node-version: '24'
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build -r
+      - run: pnpm -r build
 
       - name: Configure npm auth
         run: |
