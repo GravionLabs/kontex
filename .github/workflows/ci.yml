@@ -43,6 +43,6 @@ jobs:
           fi
         done
       publish-command: pnpm publish -r --no-git-checks
-      force-publish: ${{ inputs.force-publish }}
+      force-publish: ${{ github.event_name == 'workflow_dispatch' && inputs.force-publish == 'true' || false }}
     secrets:
       npm-token: ${{ secrets.GH_PAT }}
