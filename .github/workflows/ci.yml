@@ -31,6 +31,6 @@ jobs:
             "
           fi
         done
-      force-publish: ${{ github.event_name == 'workflow_dispatch' && inputs.force-publish || false }}
+      force-publish: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force-publish == 'true' || false }}
     secrets:
       npm-token: ${{ secrets.GH_PAT }}
