@@ -116,7 +116,7 @@ jobs:
 
       - name: Configure npm auth
         run: |
-          echo "npm-auth-type=basic" >> .npmrc
+          echo "npm-auth-type=legacy" >> .npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GH_PAT }}" >> .npmrc
           echo "//npm.pkg.github.com/:always-auth=true" >> .npmrc
 
