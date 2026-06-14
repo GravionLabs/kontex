@@ -5,7 +5,7 @@ on:
 
 jobs:
   test:
-    uses: GravionLabs/ci/.github/workflows/node-package.yml@main
+    uses: GravionLabs/ci/.github/workflows/node-package.yml@d4193a64262bd904575cc8eed43bc9d6c396a011
     with:
       node-version: '24'
       package-manager: pnpm
