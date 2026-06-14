@@ -25,7 +25,7 @@ jobs:
     name: CI/CD
     uses: GravionLabs/ci/.github/workflows/node-package.yml@main
     with:
-      node-version: '24'
+      node-version: ${{ vars.NODE_VERSION || '24' }}
       package-manager: pnpm
       lint-command: pnpm check
       build-command: pnpm -r build
