@@ -12,6 +12,13 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: write
+  checks: write
+  pull-requests: write
+  packages: write
+  id-token: write
+
 jobs:
   package:
     name: CI/CD
