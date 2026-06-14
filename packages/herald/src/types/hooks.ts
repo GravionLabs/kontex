@@ -1,1 +1,1 @@
-export * from '@kontex/types';
+export * from '@gravionlabs/kontex-types';

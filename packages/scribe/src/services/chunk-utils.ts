@@ -1,8 +1,8 @@
 export interface RawChunk {
-  content: string
-  heading: string | undefined
-  headingPath: string[]
-  chunkIndex: number
+  content: string;
+  heading: string | undefined;
+  headingPath: string[];
+  chunkIndex: number;
 }
 
 const MAX_CHARS = 2000;

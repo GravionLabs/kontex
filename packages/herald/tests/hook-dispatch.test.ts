@@ -6,7 +6,7 @@ describe('hook-dispatch', () => {
   });
 
   it('resets budget on sessionStart', async () => {
-    const { globalContextBudget, globalEventBus } = await import('@kontex/types');
+    const { globalContextBudget, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     globalContextBudget.addTokens(50);
@@ -23,7 +23,7 @@ describe('hook-dispatch', () => {
   });
 
   it('tracks tokens on userPromptSubmitted', async () => {
-    const { globalContextBudget, globalEventBus } = await import('@kontex/types');
+    const { globalContextBudget, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     initHookDispatch();
@@ -43,7 +43,7 @@ describe('hook-dispatch', () => {
   });
 
   it('auto-escalates caveman mode at compress threshold', async () => {
-    const { globalContextBudget, globalCavemanMode, globalEventBus } = await import('@kontex/types');
+    const { globalContextBudget, globalCavemanMode, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     initHookDispatch();
@@ -67,7 +67,7 @@ describe('hook-dispatch', () => {
   });
 
   it('tracks tool result tokens on postToolUse', async () => {
-    const { globalContextBudget, globalEventBus } = await import('@kontex/types');
+    const { globalContextBudget, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     initHookDispatch();
@@ -89,7 +89,7 @@ describe('hook-dispatch', () => {
   });
 
   it('does not track non-string results on postToolUse', async () => {
-    const { globalContextBudget, globalEventBus } = await import('@kontex/types');
+    const { globalContextBudget, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     initHookDispatch();

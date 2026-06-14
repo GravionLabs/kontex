@@ -1,5 +1,5 @@
-import type { PostToolUsePayload, PreToolUsePayload } from '@kontex/types';
-import { globalEventBus } from '@kontex/types';
+import type { PostToolUsePayload, PreToolUsePayload } from '@gravionlabs/kontex-types';
+import { globalEventBus } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getCurrentSessionId } from './session-lifecycle.js';

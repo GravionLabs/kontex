@@ -1,5 +1,5 @@
-import type { CavemanLevel } from '@kontex/types';
-import { CAVEMAN_LEVELS, globalCavemanMode } from '@kontex/types';
+import type { CavemanLevel } from '@gravionlabs/kontex-types';
+import { CAVEMAN_LEVELS, globalCavemanMode } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 

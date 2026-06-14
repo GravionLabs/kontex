@@ -1,5 +1,5 @@
-import type { SessionEndPayload, SessionStartPayload } from '@kontex/types';
-import { createSessionId, globalEventBus } from '@kontex/types';
+import type { SessionEndPayload, SessionStartPayload } from '@gravionlabs/kontex-types';
+import { createSessionId, globalEventBus } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 

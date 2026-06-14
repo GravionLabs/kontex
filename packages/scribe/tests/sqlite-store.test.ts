@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import type { EmbeddingProvider } from '@kontex/types';
+import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 

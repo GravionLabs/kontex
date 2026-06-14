@@ -1,6 +1,6 @@
-import type { RecommendModelInput, ScoredResult, Tier, ContextSize } from '../types.js';
-import { resolveModel, getProvider } from './model-registry.js';
+import type { ContextSize, RecommendModelInput, ScoredResult, Tier } from '../types.js';
 import { evaluateWithLLM } from './llm-evaluator.js';
+import { getProvider, resolveModel } from './model-registry.js';
 
 const TITLE_KEYWORDS: [RegExp, number][] = [
   [/architect|design|refacto?r|migrat|rewrite/i, 35],
@@ -26,7 +26,7 @@ const BODY_KEYWORDS: [RegExp, number][] = [
 ];
 
 const CODE_BLOCK_RE = /```/g;
-const FILE_PATH_RE = /`[\w./\\\-]+`/g;
+const FILE_PATH_RE = /`[\w./\\-]+`/g;
 
 export function scoreTitle(title: string): { delta: number; reasons: string[] } {
   let delta = 0;
@@ -40,7 +40,11 @@ export function scoreTitle(title: string): { delta: number; reasons: string[] } 
   return { delta, reasons };
 }
 
-export function scoreLabels(labels: string[]): { delta: number; reasons: string[]; labelOverride?: { tier: Tier; reason: string } } {
+export function scoreLabels(labels: string[]): {
+  delta: number;
+  reasons: string[];
+  labelOverride?: { tier: Tier; reason: string };
+} {
   let delta = 0;
   const reasons: string[] = [];
 
@@ -50,7 +54,11 @@ export function scoreLabels(labels: string[]): { delta: number; reasons: string[
     const modelMatch = lower.match(/^model:(haiku|sonnet|opus)$/);
     if (modelMatch) {
       const tierMap: Record<string, Tier> = { haiku: 'fast', sonnet: 'balanced', opus: 'powerful' };
-      return { delta: 0, reasons: [`label override: ${label}`], labelOverride: { tier: tierMap[modelMatch[1]], reason: `Label ${label}` } };
+      return {
+        delta: 0,
+        reasons: [`label override: ${label}`],
+        labelOverride: { tier: tierMap[modelMatch[1]], reason: `Label ${label}` },
+      };
     }
 
     if (lower === 'complexity:low') {
@@ -79,7 +87,12 @@ function countMatches(text: string, re: RegExp): number {
   return matches ? matches.length : 0;
 }
 
-export function scoreBody(body: string): { delta: number; reasons: string[]; fileMentionCount: number; codeBlockCount: number } {
+export function scoreBody(body: string): {
+  delta: number;
+  reasons: string[];
+  fileMentionCount: number;
+  codeBlockCount: number;
+} {
   let delta = 0;
   const reasons: string[] = [];
 
@@ -186,10 +199,16 @@ export async function recommendModel(input: RecommendModelInput): Promise<{
 
   const shouldUseLLM = input.llmEval !== false && isBorderline(totalScore);
   if (shouldUseLLM) {
-    const llmResult = await evaluateWithLLM(input.title, input.body.slice(0, 500), process.env.ORACLE_LLM_EVAL_PROVIDER || 'anthropic');
+    const llmResult = await evaluateWithLLM(
+      input.title,
+      input.body.slice(0, 500),
+      process.env.ORACLE_LLM_EVAL_PROVIDER || 'anthropic',
+    );
     if (llmResult !== null) {
       const blended = Math.round(totalScore * 0.7 + llmResult.complexityScore * 0.3);
-      allReasons.push(`LLM eval: blended ${blended} (70% rules: ${totalScore} + 30% LLM: ${llmResult.complexityScore})`);
+      allReasons.push(
+        `LLM eval: blended ${blended} (70% rules: ${totalScore} + 30% LLM: ${llmResult.complexityScore})`,
+      );
       allReasons.push(`LLM reasoning: ${llmResult.reasoning}`);
       totalScore = blended;
     }

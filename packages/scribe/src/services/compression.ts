@@ -1,6 +1,6 @@
-import type { CavemanLevel, CompressionResult } from '@kontex/caveman-compress';
-import { compressToCaveman } from '@kontex/caveman-compress';
-import rules from '@kontex/caveman-compress/rules' with { type: 'json' };
+import type { CavemanLevel, CompressionResult } from '@gravionlabs/kontex-compress';
+import { compressToCaveman } from '@gravionlabs/kontex-compress';
+import rules from '@gravionlabs/kontex-compress/rules' with { type: 'json' };
 
 export type ArtifactKind = 'prompt' | 'skill' | 'agent';
 

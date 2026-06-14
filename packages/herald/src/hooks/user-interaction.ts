@@ -1,5 +1,5 @@
-import type { UserPromptSubmittedPayload } from '@kontex/types';
-import { globalEventBus } from '@kontex/types';
+import type { UserPromptSubmittedPayload } from '@gravionlabs/kontex-types';
+import { globalEventBus } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getCurrentSessionId } from './session-lifecycle.js';

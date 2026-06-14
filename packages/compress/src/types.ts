@@ -1,4 +1,4 @@
-export type { CavemanLevel } from '@kontex/types';
+export type { CavemanLevel } from '@gravionlabs/kontex-types';
 
 export interface CompressionResult {
   compressed: string;

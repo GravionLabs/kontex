@@ -7,8 +7,8 @@ import type {
   SessionEndPayload,
   SessionStartPayload,
   UserPromptSubmittedPayload,
-} from '@kontex/types';
-import { ContextBudget, globalCavemanMode, globalContextBudget, globalEventBus } from '@kontex/types';
+} from '@gravionlabs/kontex-types';
+import { ContextBudget, globalCavemanMode, globalContextBudget, globalEventBus } from '@gravionlabs/kontex-types';
 import { getCavememStore } from '../memory/cavemem.js';
 
 let initialized = false;

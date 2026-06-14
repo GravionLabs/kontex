@@ -1,10 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-import type { EmbeddingProvider } from '@kontex/types';
+import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
 
 import Database from 'better-sqlite3';
-
+import { chunkMarkdown } from './chunk-utils.js';
+import { topK } from './embedding-search.js';
 import { listSpecFiles, loadSpecFile } from './markdown-loader.js';
 import { ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
 import {
@@ -17,8 +18,6 @@ import {
   type SpecFileInfo,
   toNormalizedContent,
 } from './spec-types.js';
-import { chunkMarkdown } from './chunk-utils.js';
-import { topK } from './embedding-search.js';
 
 interface StoredSpecRow {
   path: string;

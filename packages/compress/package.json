@@ -1,5 +1,5 @@
 {
-  "name": "@kontex/caveman-compress",
+  "name": "@gravionlabs/kontex-compress",
   "version": "1.0.0",
   "description": "Caveman-style text compression — strips filler, pleasantries, hedges, articles, and abbreviates terms by intensity level",
   "type": "module",
@@ -43,7 +43,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@kontex/types": "workspace:*"
+    "@gravionlabs/kontex-types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

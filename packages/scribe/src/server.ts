@@ -1,4 +1,4 @@
-import type { EmbeddingProvider } from '@kontex/types';
+import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { ProjectRegistry } from './services/project-registry.js';

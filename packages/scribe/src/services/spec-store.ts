@@ -1,5 +1,5 @@
-import type { EmbeddingProvider } from '@kontex/types';
-import { globalCavemanMode, globalContextBudget } from '@kontex/types';
+import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
+import { globalCavemanMode, globalContextBudget } from '@gravionlabs/kontex-types';
 
 import { compressToCaveman } from './compression.js';
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';

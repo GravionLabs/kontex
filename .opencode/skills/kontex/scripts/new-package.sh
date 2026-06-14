@@ -18,7 +18,7 @@ mkdir -p "$DIR/src" "$DIR/tests"
 
 cat > "$DIR/package.json" <<EOF
 {
-  "name": "@kontex/$NAME",
+  "name": "@gravionlabs/kontex-$NAME",
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
@@ -52,7 +52,7 @@ cat > "$DIR/tsconfig.json" <<EOF
 EOF
 
 cat > "$DIR/src/index.ts" <<EOF
-export const name = '@kontex/$NAME';
+export const name = '@gravionlabs/kontex-$NAME';
 EOF
 
 echo "Created $DIR"

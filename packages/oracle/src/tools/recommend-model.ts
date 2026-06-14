@@ -2,7 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { recommendModel } from '../services/issue-scorer.js';
 
-function textContent(text: string) { return { type: 'text' as const, text }; }
+function textContent(text: string) {
+  return { type: 'text' as const, text };
+}
 
 function formatToolError(error: unknown, fallback: string) {
   return { content: [textContent(error instanceof Error ? error.message : fallback)], isError: true };

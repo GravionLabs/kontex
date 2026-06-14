@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerRecommendModelTool } from './tools/recommend-model.js';
 
-export const SERVER_NAME = '@kontex/oracle';
+export const SERVER_NAME = '@gravionlabs/kontex-oracle';
 export const SERVER_VERSION = '1.0.0';
 
 export function createServer(): McpServer {

@@ -23,17 +23,33 @@ interface ParsedArgs {
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-  const args: ParsedArgs = { command: '', title: undefined, body: undefined, labels: undefined, provider: undefined, json: false, help: false };
+  const args: ParsedArgs = {
+    command: '',
+    title: undefined,
+    body: undefined,
+    labels: undefined,
+    provider: undefined,
+    json: false,
+    help: false,
+  };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === '--help') { args.help = true; }
-    else if (arg === '--json') { args.json = true; }
-    else if (arg === '--title' && i + 1 < argv.length) { args.title = argv[++i]; }
-    else if (arg === '--body' && i + 1 < argv.length) { args.body = argv[++i]; }
-    else if (arg === '--labels' && i + 1 < argv.length) { args.labels = argv[++i].split(',').map(s => s.trim()); }
-    else if (arg === '--provider' && i + 1 < argv.length) { args.provider = argv[++i] as Provider; }
-    else if (!arg.startsWith('--') && !args.command) { args.command = arg; }
+    if (arg === '--help') {
+      args.help = true;
+    } else if (arg === '--json') {
+      args.json = true;
+    } else if (arg === '--title' && i + 1 < argv.length) {
+      args.title = argv[++i];
+    } else if (arg === '--body' && i + 1 < argv.length) {
+      args.body = argv[++i];
+    } else if (arg === '--labels' && i + 1 < argv.length) {
+      args.labels = argv[++i].split(',').map((s) => s.trim());
+    } else if (arg === '--provider' && i + 1 < argv.length) {
+      args.provider = argv[++i] as Provider;
+    } else if (!arg.startsWith('--') && !args.command) {
+      args.command = arg;
+    }
   }
 
   return args;

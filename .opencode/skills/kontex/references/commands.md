@@ -13,9 +13,9 @@
 ## Per-package
 
 ```bash
-pnpm --filter @kontex/scribe build
-pnpm --filter @kontex/scribe test
-pnpm --filter @kontex/scribe dev
+pnpm --filter @gravionlabs/kontex-scribe build
+pnpm --filter @gravionlabs/kontex-scribe test
+pnpm --filter @gravionlabs/kontex-scribe dev
 ```
 
 ## Single test file
@@ -28,5 +28,5 @@ npx vitest run tests/chunk-utils.test.ts
 ## Publish (dry-run)
 
 ```bash
-pnpm --filter @kontex/<name> publish --dry-run
+pnpm --filter @gravionlabs/kontex-<name> publish --dry-run
 ```

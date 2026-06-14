@@ -11,9 +11,7 @@ export async function evaluateWithLLM(
   bodySnippet: string,
   provider: string,
 ): Promise<LLMResponse | null> {
-  const apiKey = provider === 'openai'
-    ? process.env.OPENAI_API_KEY
-    : process.env.ANTHROPIC_API_KEY;
+  const apiKey = provider === 'openai' ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) return null;
 
@@ -32,7 +30,7 @@ Return only valid JSON: { "complexityScore": <0-100>, "reasoning": "<brief reaso
         body: JSON.stringify({ model: 'gpt-5.4-nano', messages: [{ role: 'user', content: prompt }], max_tokens: 150 }),
       });
       if (!res.ok) return null;
-      const data = await res.json() as { choices: { message: { content: string } }[] };
+      const data = (await res.json()) as { choices: { message: { content: string } }[] };
       const text = data.choices?.[0]?.message?.content;
       if (!text) return null;
       const parsed = JSON.parse(text) as LLMResponse;
@@ -45,10 +43,14 @@ Return only valid JSON: { "complexityScore": <0-100>, "reasoning": "<brief reaso
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 150, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }],
+      }),
     });
     if (!res.ok) return null;
-    const data = await res.json() as { content: { text: string }[] };
+    const data = (await res.json()) as { content: { text: string }[] };
     const text = data.content?.[0]?.text;
     if (!text) return null;
     const parsed = JSON.parse(text) as LLMResponse;

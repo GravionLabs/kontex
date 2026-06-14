@@ -1,6 +1,5 @@
 {
-  "name": "@kontex/herald",
-  "private": true,
+  "name": "@gravionlabs/kontex-herald",
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
@@ -18,8 +17,8 @@
     "check": "biome check --write src/"
   },
   "dependencies": {
-    "@kontex/caveman-compress": "workspace:*",
-    "@kontex/types": "workspace:*",
+    "@gravionlabs/kontex-compress": "workspace:*",
+    "@gravionlabs/kontex-types": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "better-sqlite3": "^11.10.0",
     "zod": "^3.22.0"

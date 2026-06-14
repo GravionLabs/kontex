@@ -17,7 +17,7 @@ pnpm check         # biome lint + format
 ### Add a new package
 
 1. Create `packages/<name>/` with:
-   - `package.json` — `name: @kontex/<name>`, `publishConfig` pointing to `npm.pkg.github.com`, `files: ["dist","src"]`
+   - `package.json` — `name: @gravionlabs/kontex-<name>`, `publishConfig` pointing to `npm.pkg.github.com`, `files: ["dist","src"]`
    - `tsconfig.json` — extends `../../tsconfig.base.json`, `rootDir: src`
    - `src/index.ts` — package entry point
 2. `pnpm install` (updates lockfile)

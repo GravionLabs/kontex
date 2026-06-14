@@ -1,16 +1,4 @@
-name: CI + Publish
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      force-publish:
-        description: 'Publish packages even on non-main branches'
-        type: boolean
-        required: false
-        default: false
+name: CI / Publish
 
 permissions:
   contents: write
@@ -19,6 +7,19 @@ permissions:
   packages: write
   id-token: write
 
+on:
+  workflow_dispatch:
+    inputs:
+      force-publish:
+        description: 'Publish regardless of the current branch'
+        type: boolean
+        required: false
+        default: false
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 jobs:
   package:
     name: CI/CD
@@ -26,8 +27,11 @@ jobs:
     with:
       node-version: '24'
       package-manager: pnpm
+      lint-command: pnpm check
       build-command: pnpm -r build
+      run-tests: true
       test-command: pnpm -r test:ci
+      coverage-format: cobertura
       set-version-command: |
         for pkg in packages/*/package.json; do
           if ! grep -q '"private": true' "$pkg"; then
@@ -39,6 +43,6 @@ jobs:
           fi
         done
       publish-command: pnpm publish -r --no-git-checks
-      force-publish: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force-publish == 'true' || false }}
+      force-publish: ${{ inputs.force-publish }}
     secrets:
       npm-token: ${{ secrets.GH_PAT }}

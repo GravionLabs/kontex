@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { compressToCaveman } from '@kontex/caveman-compress';
+import { compressToCaveman } from '@gravionlabs/kontex-compress';
 import Database from 'better-sqlite3';
 
 export interface Observation {
