@@ -1,5 +1,6 @@
 {
   "name": "@kontex/forge",
+  "private": true,
   "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
