@@ -117,7 +117,7 @@ jobs:
       - name: Configure npm auth
         run: |
           echo "npm-auth-type=basic" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GH_PAT }}" >> .npmrc
           echo "//npm.pkg.github.com/:always-auth=true" >> .npmrc
 
       - name: Set version across packages
