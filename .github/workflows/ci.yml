@@ -128,9 +128,9 @@ jobs:
           for pkg in packages/*/package.json; do
             if ! grep -q '"private": true' "$pkg"; then
               node -e "
-                const p = require('$pkg');
+                const p = require('./$pkg');
                 p.version = '$VERSION';
-                require('fs').writeFileSync('$pkg', JSON.stringify(p, null, 2) + '\n');
+                require('fs').writeFileSync('./$pkg', JSON.stringify(p, null, 2) + '\n');
               "
             fi
           done
