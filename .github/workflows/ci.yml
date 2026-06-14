@@ -13,24 +13,138 @@ on:
         default: false
 
 jobs:
-  package:
-    name: CI/CD
-    uses: GravionLabs/ci/.github/workflows/node-package.yml@main
-    with:
-      node-version: '24'
-      package-manager: pnpm
-      build-command: pnpm -r build
-      test-command: pnpm -r test:ci
-      set-version-command: |
-        for pkg in packages/*/package.json; do
-          if ! grep -q '"private": true' "$pkg"; then
-            node -e "
-              const p = require('./$pkg');
-              p.version = process.env.VERSION;
-              require('fs').writeFileSync('./$pkg', JSON.stringify(p, null, 2) + '\n');
-            "
-          fi
-        done
-      force-publish: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force-publish == 'true' || false }}
-    secrets:
-      npm-token: ${{ secrets.GH_PAT }}
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.version.outputs.semver }}
+      npm-version: ${{ steps.version.outputs.npm-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: GravionLabs/ci/versioning/determine-version@main
+        id: version
+
+  ci:
+    name: Build & Test
+    needs: determine-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Build
+        uses: GravionLabs/ci/node/build@main
+        with:
+          node-version: '24'
+          package-manager: pnpm
+          build-command: pnpm -r build
+
+      - name: Test
+        run: pnpm -r test:ci
+
+      - name: Collect test results
+        run: |
+          mkdir -p test-results coverage
+          for dir in packages/*/; do
+            pkg=$(basename "$dir")
+            [ -f "$dir/test-results/junit.xml" ] && cp "$dir/test-results/junit.xml" "test-results/$pkg-junit.xml"
+            [ -f "$dir/coverage/cobertura-coverage.xml" ] && cp "$dir/coverage/cobertura-coverage.xml" "coverage/$pkg-cobertura.xml"
+          done
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: test-results/*-junit.xml
+          reporter: jest-junit
+          fail-on-error: false
+
+      - name: Coverage summary
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/*-cobertura.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          output: both
+          indicators: true
+          thresholds: '50 75'
+
+  publish:
+    name: Publish to GitHub Packages
+    needs: [determine-version, ci]
+    if: github.ref == 'refs/heads/main' || inputs.force-publish == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build -r
+
+      - name: Configure npm auth
+        run: |
+          echo "npm-auth-type=basic" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${GH_PAT}" >> .npmrc
+          echo "//npm.pkg.github.com/:always-auth=true" >> .npmrc
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+
+      - name: Set version across packages
+        run: |
+          VERSION="${{ needs.determine-version.outputs.npm-version }}"
+          for pkg in packages/*/package.json; do
+            if ! grep -q '"private": true' "$pkg"; then
+              node -e "
+                const p = require('$pkg');
+                p.version = '$VERSION';
+                require('fs').writeFileSync('$pkg', JSON.stringify(p, null, 2) + '\n');
+              "
+            fi
+          done
+
+      - run: pnpm publish -r --no-git-checks
+
+  release:
+    name: Create GitHub Release
+    needs: [determine-version, publish]
+    if: github.ref == 'refs/heads/main' || inputs.force-publish == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: GravionLabs/ci/versioning/gh-release@main
+        with:
+          version: ${{ needs.determine-version.outputs.semver }}
