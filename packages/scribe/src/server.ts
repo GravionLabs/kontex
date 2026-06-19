@@ -10,6 +10,7 @@ import { registerLoadSpecTool } from './tools/load-spec.js';
 import { registerReindexSpecsTool } from './tools/reindex-specs.js';
 import { registerSearchSpecsTool } from './tools/search-specs.js';
 import { registerTeamsContextTool } from './tools/teams-context.js';
+import { registerWriteSpecTool } from './tools/write-spec.js';
 
 export const SERVER_NAME = 'kontex';
 export const SERVER_VERSION = '1.0.0';
@@ -25,6 +26,7 @@ export function createServer(rootDir = process.cwd(), embeddingProvider?: Embedd
   registerGetContextTool(server, store);
   registerTeamsContextTool(server, store);
   registerReindexSpecsTool(server, store);
+  registerWriteSpecTool(server, store);
   registerCompressArtifactTool(server);
 
   return server;

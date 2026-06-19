@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
 import { globalCavemanMode, globalContextBudget } from '@gravionlabs/kontex-types';
 
@@ -5,7 +8,7 @@ import { compressToCaveman } from './compression.js';
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';
 import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
 import type { ProjectRegistry } from './project-registry.js';
-import { SpecServerError } from './rules.js';
+import { ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
 import type {
   ContextEntry,
   ContextQueryOptions,
@@ -80,15 +83,15 @@ export class SpecStore {
     return searchSpecFiles(context.rootDir, query, limit);
   }
 
-  async teamsContext(project: string | undefined, topic?: string): Promise<string[]> {
+  async teamsContext(project: string | undefined, topic?: string, limit = 5): Promise<string[]> {
     const context = this.projectRegistry.resolveProjectRoot(project);
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
       const rows = this.sqliteStore.listRaw(context.name);
-      return scanTeamsContextFromDocuments(rows, topic);
+      return scanTeamsContextFromDocuments(rows, topic, limit);
     }
 
-    return scanTeamsContext(context.rootDir, topic);
+    return scanTeamsContext(context.rootDir, topic, limit);
   }
 
   async getContext(
@@ -163,6 +166,25 @@ export class SpecStore {
     }
 
     return results;
+  }
+
+  async writeSpec(
+    project: string | undefined,
+    relativePath: string,
+    content: string,
+  ): Promise<{ version: string; absolutePath: string }> {
+    const context = this.projectRegistry.resolveProjectRoot(project);
+    const safePath = ensureAllowedSpecRelativePath(relativePath);
+    const absolutePath = path.resolve(context.rootDir, safePath);
+
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, content, 'utf8');
+
+    if (this.sqliteStore) {
+      await this.ensureIndexed(context.name, context.rootDir);
+    }
+
+    return { version: contentHash(content), absolutePath };
   }
 
   private async ensureIndexed(projectName: string, rootDir: string): Promise<void> {
