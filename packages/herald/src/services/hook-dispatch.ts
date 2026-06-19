@@ -97,7 +97,7 @@ export function initHookDispatch(): void {
   globalEventBus.on('postToolUse', (payload) => {
     const p = payload as PostToolUsePayload;
     const dur = p.data.duration ?? 0;
-    const ok = p.data.success ? '?' : '?';
+    const ok = p.data.success ? '[OK]' : '[FAIL]';
     console.log(`[ctx] Post: ${p.data.toolName} ${dur}ms ${ok}`);
 
     if (typeof p.data.result === 'string') {
