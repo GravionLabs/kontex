@@ -2,9 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { EmbeddingProvider } from '@gravionlabs/kontex-types';
-import { globalCavemanMode, globalContextBudget } from '@gravionlabs/kontex-types';
+import { globalCompressionMode, globalContextBudget } from '@gravionlabs/kontex-types';
 
-import { compressToCaveman } from './compression.js';
+import { compress } from './compression.js';
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from './markdown-loader.js';
 import { getPhaseContext, getPhaseContextFromDocuments } from './phase-scanner.js';
 import type { ProjectRegistry } from './project-registry.js';
@@ -123,11 +123,11 @@ export class SpecStore {
 
     // Auto-compress based on phase + caveman mode (skip in summary mode — already condensed)
     if (mode !== 'summary') {
-      const effectiveLevel = globalCavemanMode.getEffectiveLevel(phase);
+      const effectiveLevel = globalCompressionMode.getEffectiveLevel(phase);
       if (effectiveLevel !== 'off') {
         resultEntries = resultEntries.map((entry) => ({
           ...entry,
-          content: compressToCaveman(entry.content, effectiveLevel).compressed,
+          content: compress(entry.content, effectiveLevel).compressed,
         }));
       }
     }
@@ -142,7 +142,7 @@ export class SpecStore {
     }
 
     // Budget panic: drop non-global files when compression is active
-    if (globalContextBudget.status === 'panic' && globalCavemanMode.level !== 'off') {
+    if (globalContextBudget.status === 'panic' && globalCompressionMode.level !== 'off') {
       const globalPathSet = new Set(GLOBAL_CONTEXT_PATHS);
       resultEntries = resultEntries.filter((e) => globalPathSet.has(e.relativePath));
     }

@@ -42,8 +42,8 @@ describe('hook-dispatch', () => {
     expect(globalContextBudget.usedTokens).toBe(25);
   });
 
-  it('auto-escalates caveman mode at compress threshold', async () => {
-    const { globalContextBudget, globalCavemanMode, globalEventBus } = await import('@gravionlabs/kontex-types');
+  it('auto-escalates compression mode at compress threshold', async () => {
+    const { globalContextBudget, globalCompressionMode, globalEventBus } = await import('@gravionlabs/kontex-types');
     const { initHookDispatch } = await import('../src/services/hook-dispatch.js');
 
     initHookDispatch();
@@ -63,7 +63,7 @@ describe('hook-dispatch', () => {
       },
     });
 
-    expect(globalCavemanMode.level).toBe('ultra');
+    expect(globalCompressionMode.level).toBe('ultra');
   });
 
   it('tracks tool result tokens on postToolUse', async () => {

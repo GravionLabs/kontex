@@ -1,6 +1,6 @@
-import type { CavemanLevel, CompressionResult } from '@gravionlabs/kontex-compress';
-import { compressToCaveman } from '@gravionlabs/kontex-compress';
-import rules from '@gravionlabs/kontex-compress/rules' with { type: 'json' };
+import type { CompressionLevel, CompressionResult } from '@gravionlabs/kontex-compress';
+import { compress } from '@gravionlabs/kontex-compress';
+import rules from '@gravionlabs/kontex-compress/compression-rules' with { type: 'json' };
 
 export type ArtifactKind = 'prompt' | 'skill' | 'agent';
 
@@ -50,10 +50,10 @@ function compressKindSpecific(kind: ArtifactKind, text: string): string {
   return text;
 }
 
-export function compressArtifact(kind: ArtifactKind, content: string, level: CavemanLevel = 'full'): CompressionResult {
+export function compressArtifact(kind: ArtifactKind, content: string, level: CompressionLevel = 'full'): CompressionResult {
   const useAbbreviations = level === 'full' || level === 'ultra' || level === 'wenyan';
 
-  const result = compressToCaveman(content, level);
+  const result = compress(content, level);
   if (result.originalLen === 0 || level === 'off') return result;
 
   let text = result.compressed;
@@ -69,4 +69,4 @@ export function compressArtifact(kind: ArtifactKind, content: string, level: Cav
   return { compressed: text, originalLen: result.originalLen, compressedLen, ratio };
 }
 
-export { compressToCaveman };
+export { compress };

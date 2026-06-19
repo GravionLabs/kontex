@@ -1,5 +1,5 @@
-import type { CavemanLevel } from '@gravionlabs/kontex-types';
-import { CAVEMAN_LEVELS, globalCavemanMode } from '@gravionlabs/kontex-types';
+import type { CompressionLevel } from '@gravionlabs/kontex-types';
+import { COMPRESSION_LEVELS, globalCompressionMode } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { compressArtifact } from '../services/compression.js';
@@ -17,15 +17,15 @@ export function registerCompressArtifactTool(server: McpServer): void {
         kind: z.enum(['prompt', 'skill', 'agent']).describe('Artifact type: prompt, skill, or agent description'),
         content: z.string().min(1).max(50000).describe('Text content to compress'),
         level: z
-          .enum(CAVEMAN_LEVELS as [string, ...string[]])
+          .enum(COMPRESSION_LEVELS as [string, ...string[]])
           .optional()
-          .describe('Compression level (default: current caveman mode or full)'),
+          .describe('Compression level (default: current mode or full)'),
       },
     },
     async ({ kind, content, level }) => {
       try {
-        const resolvedLevel: CavemanLevel =
-          (level as CavemanLevel | undefined) ?? (globalCavemanMode.level !== 'off' ? globalCavemanMode.level : 'full');
+        const resolvedLevel: CompressionLevel =
+          (level as CompressionLevel | undefined) ?? (globalCompressionMode.level !== 'off' ? globalCompressionMode.level : 'full');
         const result = compressArtifact(kind, content, resolvedLevel);
 
         const summary =
