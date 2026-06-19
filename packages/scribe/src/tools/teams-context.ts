@@ -16,7 +16,7 @@ export function registerTeamsContextTool(server: McpServer, store: SpecStore): v
     },
     async ({ project, topic }) => {
       try {
-        const context = await store.teamsContext(project, topic);
+        const context = await store.teamsContext(project, topic, 10);
         if (context.length === 0) {
           return { content: [textContent('No team context found.')] };
         }

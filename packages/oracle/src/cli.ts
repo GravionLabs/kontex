@@ -1,5 +1,4 @@
 import { recommendModel } from './services/issue-scorer.js';
-import { getProvider } from './services/model-registry.js';
 import type { Provider } from './types.js';
 
 const USAGE = `oracle recommend-model [options]

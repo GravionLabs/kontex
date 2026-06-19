@@ -110,6 +110,28 @@ export function compressToCaveman(content: string, level: CavemanLevel = 'full')
   let compressed = processBody(body, level, categories, useAbbreviations);
   compressed = cleanPunctuation(compressed);
 
+  if (level === 'wenyan') {
+    compressed = compressed
+      .replace(/this is /gi, '')
+      .replace(/there is /gi, '')
+      .replace(/it is /gi, '')
+      .replace(/that is /gi, '')
+      .replace(/are /gi, '')
+      .replace(/be /gi, '')
+      .replace(/have /gi, '')
+      .replace(/has /gi, '')
+      .replace(/with /gi, '')
+      .replace(/from /gi, '')
+      .replace(/should /gi, '')
+      .replace(/could /gi, '')
+      .replace(/would /gi, '');
+    compressed = compressed
+      .replace(/\. /g, '. ')
+      .replace(/"?([^.!?]*)"/g, '$1')
+      .replace(/\b(the|this|that|these|those)\b/gi, '')
+      .replace(/\s{2,}/g, ' ');
+  }
+
   const final = frontmatter ? `${frontmatter}\n${compressed}` : compressed;
   const originalLen = content.length;
   const compressedLen = final.length;
