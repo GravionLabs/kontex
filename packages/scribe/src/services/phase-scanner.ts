@@ -91,6 +91,8 @@ async function loadDirectory(rootDir: string, dirRelativePath: string): Promise<
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
+        const subResults = await loadDirectory(rootDir, `${dirRelativePath}/${entry.name}`);
+        results.push(...subResults);
         continue;
       }
 

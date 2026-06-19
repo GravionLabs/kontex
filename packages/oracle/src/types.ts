@@ -1,7 +1,7 @@
 export type Tier = 'fast' | 'balanced' | 'powerful';
 export type ContextSize = 'small' | 'medium' | 'large';
 export type Provider = 'anthropic' | 'openai' | 'google' | 'opencode';
-export type OverriddenBy = 'label' | 'llm' | 'rules';
+export type OverriddenBy = 'label' | 'llm' | 'rules' | 'context-upgrade';
 
 export interface RecommendModelInput {
   title: string;

@@ -1,4 +1,4 @@
-import type { ContextSize, RecommendModelInput, ScoredResult, Tier } from '../types.js';
+import type { ContextSize, OverriddenBy, RecommendModelInput, Tier } from '../types.js';
 import { evaluateWithLLM } from './llm-evaluator.js';
 import { getProvider, resolveModel } from './model-registry.js';
 
@@ -157,7 +157,7 @@ export async function recommendModel(input: RecommendModelInput): Promise<{
   complexityScore: number;
   contextSize: ContextSize;
   reasoning: string;
-  overriddenBy: 'label' | 'llm' | 'rules';
+  overriddenBy: OverriddenBy;
 }> {
   const labels = input.labels ?? [];
 
@@ -224,6 +224,6 @@ export async function recommendModel(input: RecommendModelInput): Promise<{
     complexityScore: totalScore,
     contextSize,
     reasoning: allReasons.join('; ') || 'No signals detected',
-    overriddenBy: effectiveTier !== tier ? 'rules' : 'rules',
+    overriddenBy: effectiveTier !== tier ? 'context-upgrade' : 'rules',
   };
 }

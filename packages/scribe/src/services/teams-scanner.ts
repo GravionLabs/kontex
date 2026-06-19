@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { listSpecFiles } from './markdown-loader.js';
 
-export async function scanTeamsContext(rootDir: string, topic?: string): Promise<string[]> {
+export async function scanTeamsContext(rootDir: string, topic?: string, limit = 5): Promise<string[]> {
   const files = await listSpecFiles(rootDir);
   const documents: Array<{ relativePath: string; content: string }> = [];
 
@@ -13,12 +13,13 @@ export async function scanTeamsContext(rootDir: string, topic?: string): Promise
     documents.push({ relativePath: file.relativePath, content });
   }
 
-  return scanTeamsContextFromDocuments(documents, topic);
+  return scanTeamsContextFromDocuments(documents, topic, limit);
 }
 
 export function scanTeamsContextFromDocuments(
   documents: Array<{ relativePath: string; content: string }>,
   topic?: string,
+  limit = 5,
 ): string[] {
   const keywords = buildKeywords(topic);
   const results: string[] = [];
@@ -31,7 +32,7 @@ export function scanTeamsContextFromDocuments(
     }
   }
 
-  return results.slice(0, 5);
+  return results.slice(0, limit);
 }
 
 function buildKeywords(topic?: string): string[] {
