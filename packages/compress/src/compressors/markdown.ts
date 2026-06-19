@@ -44,6 +44,52 @@ function firstSentence(text: string): string {
   return match ? match[0].trim() : text.trim();
 }
 
+function compressFrontmatterDescription(frontmatter: string, level: CompressionLevel): string {
+  const lines = frontmatter.split('\n');
+  let inBlock = false;
+  const result: string[] = [];
+
+  for (const line of lines) {
+    if (inBlock && /^\s/.test(line)) {
+      const indent = line.match(/^\s*/)?.[0] ?? '';
+      const text = line.trim();
+      if (!text) {
+        result.push(line);
+        continue;
+      }
+      const compressed = compressText(text, level).compressed;
+      if (compressed.trim()) {
+        result.push(indent + compressed);
+      }
+      continue;
+    }
+
+    if (inBlock && !/^\s/.test(line)) {
+      inBlock = false;
+    }
+
+    const descMatch = line.match(/^(description:\s*)(.*)/);
+    if (descMatch) {
+      const prefix = descMatch[1];
+      const value = descMatch[2];
+      if (/^[>|][-+]?$/.test(value.trim())) {
+        inBlock = true;
+        result.push(line);
+      } else if (value.trim()) {
+        const compressed = compressText(value, level).compressed;
+        result.push(prefix + compressed.trim());
+      } else {
+        result.push(line);
+      }
+      continue;
+    }
+
+    result.push(line);
+  }
+
+  return result.join('\n');
+}
+
 function extractFrontmatter(content: string): { frontmatter: string; body: string } {
   if (!content.startsWith('---')) return { frontmatter: '', body: content };
   const lines = content.split('\n');
@@ -95,20 +141,17 @@ export function compressMarkdown(content: string, level: CompressionLevel): Comp
 
   let summary: string;
   if (kept.length === 0) {
-    const allBody = body.split('\n').filter((l) => l.trim()).join(' ');
-    const first = firstSentence(allBody);
-    if (first) {
-      summary = compressText(first, level).compressed;
-    } else {
-      summary = '';
-    }
+    summary = body;
   } else {
     summary = kept.join('\n\n');
   }
 
   const combined = [preserved, summary].filter(Boolean).join('\n\n');
-  const result = frontmatter ? compressText(`${frontmatter}\n\n${combined}`, level) : compressText(combined, level);
-  const compressed = result.compressed;
+  const compressedFrontmatter = frontmatter ? compressFrontmatterDescription(frontmatter, level) : '';
+  const bodyResult = compressText(combined, level);
+  const compressed = compressedFrontmatter
+    ? `${compressedFrontmatter}\n\n${bodyResult.compressed}`
+    : bodyResult.compressed;
   const compressedLen = compressed.length;
   const ratio = originalLen > 0 ? Math.round((1 - compressedLen / originalLen) * 100) : 0;
 

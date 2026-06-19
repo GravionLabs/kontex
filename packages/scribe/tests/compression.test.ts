@@ -127,16 +127,35 @@ You are an AI agent. The database implementation requires authentication.`;
       expect(result.compressed).not.toContain('You are an');
     });
 
-    it('skips compression for frontmatter only', () => {
+    it('compresses frontmatter description while preserving other YAML keys', () => {
       const input = `---
 title: Test
+description: Please be brief. Use the database for all storage.
 ---
 Please be brief. Use the database.`;
       const result = compressArtifact('prompt', input);
-      // Frontmatter exact, body compressed
-      expect(result.compressed).toContain('---\ntitle: Test\n---');
+      expect(result.compressed).toContain('title: Test');
+      expect(result.compressed).toContain('description:');
       expect(result.compressed).not.toContain('Please');
       expect(result.compressed).toContain('DB');
+    });
+
+    it('preserves block scalar format in frontmatter description', () => {
+      const input = `---
+name: my-agent
+description: >
+  Basically just use this skill when creating projects.
+  Really helpful for code generation.
+model: claude-sonnet-4.6
+---
+Body content here.`;
+      const result = compressArtifact('prompt', input);
+      expect(result.compressed).toContain('name: my-agent');
+      expect(result.compressed).toContain('description: >');
+      expect(result.compressed).toContain('model: claude-sonnet-4.6');
+      expect(result.compressed).not.toContain('Basically');
+      expect(result.compressed).not.toContain('Really');
+      expect(result.compressed).toMatch(/^\s+\S/m);
     });
 
     it('handles content without frontmatter', () => {

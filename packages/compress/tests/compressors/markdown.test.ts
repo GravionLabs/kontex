@@ -62,4 +62,36 @@ describe('compressMarkdown', () => {
     expect(r.ratio).toBeGreaterThan(0);
     expect(r.originalLen).toBe(content.length);
   });
+
+  it('compresses inline description value while preserving other keys', () => {
+    const content = `---
+title: My Spec
+description: Please use the database schema for this basically.
+---
+# Hello
+Body content.`;
+    const r = compressMarkdown(content, 'full');
+    expect(r.compressed).toContain('title: My Spec');
+    expect(r.compressed).not.toContain('basically');
+    expect(r.compressed).toContain('description:');
+  });
+
+  it('preserves block scalar structure when compressing description', () => {
+    const content = `---
+name: my-agent
+description: >
+  Basically just use this skill for generating code.
+  Really helpful for scaffolding.
+model: claude-sonnet-4.6
+---
+# Body
+Content.`;
+    const r = compressMarkdown(content, 'full');
+    expect(r.compressed).toContain('name: my-agent');
+    expect(r.compressed).toContain('description: >');
+    expect(r.compressed).toContain('model: claude-sonnet-4.6');
+    expect(r.compressed).not.toContain('Basically');
+    expect(r.compressed).not.toContain('Really');
+    expect(r.compressed).toMatch(/^\s+\S/m);
+  });
 });
