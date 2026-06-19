@@ -1,0 +1,61 @@
+name: Model Advisor
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  recommend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://npm.pkg.github.com
+
+      - name: Install @gravionlabs/kontex-oracle
+        run: npm install -g @gravionlabs/kontex-oracle
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get model recommendation
+        id: recommend
+        run: |
+          RESULT=$(oracle recommend-model \
+            --title "${{ github.event.issue.title }}" \
+            --body "${{ github.event.issue.body }}" \
+            --labels "${{ join(github.event.issue.labels.*.name, ',') }}" \
+            --provider anthropic \
+            --json 2>&1)
+          echo "raw=$RESULT" >> $GITHUB_OUTPUT
+          MODEL=$(echo "$RESULT" | jq -r '.model // empty')
+          TIER=$(echo "$RESULT" | jq -r '.tier // empty')
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          echo "tier=$TIER" >> $GITHUB_OUTPUT
+
+      - name: Apply model label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TIER="${{ steps.recommend.outputs.tier }}"
+          if [ -z "$TIER" ]; then
+            echo "No recommendation — skipping label"
+            exit 0
+          fi
+
+          case "$TIER" in
+            fast)     LABEL="model:haiku" ;;
+            balanced) LABEL="model:sonnet" ;;
+            powerful) LABEL="model:opus" ;;
+            *)        LABEL="model:${TIER}" ;;
+          esac
+
+          gh label create "$LABEL" --color "0075ca" --description "Recommended model: ${{ steps.recommend.outputs.model }}" 2>/dev/null || true
+          gh issue edit ${{ github.event.issue.number }} --add-label "$LABEL"
