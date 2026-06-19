@@ -1,6 +1,7 @@
 import rules from './compression-rules.json' with { type: 'json' };
 import { detokenize, tokenize } from './tokenize.js';
-import type { CompressionLevel, CompressOptions, CompressionResult, Segment } from './types.js';
+import { detectContentType } from './detect-content-type.js';
+import type { CompressionLevel, CompressOptions, CompressionResult, ContentType, Segment } from './types.js';
 
 type RuleCategory = 'fillers' | 'pleasantries' | 'hedges' | 'leaders' | 'articles';
 
@@ -104,6 +105,10 @@ export function compress(content: string, arg2?: CompressionLevel | CompressOpti
   } else {
     level = 'full';
   }
+
+  const options: CompressOptions = typeof arg2 === 'object' && arg2 !== null ? arg2 as CompressOptions : {};
+  const contentType: ContentType = options.contentType ?? 'auto';
+  const resolvedType = contentType === 'auto' ? detectContentType(content) : contentType;
 
   if (!content || content.trim().length === 0) {
     return { compressed: '', originalLen: 0, compressedLen: 0, ratio: 0 };
