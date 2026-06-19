@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { parseArgs, run } from '../src/compress-cli.js';
 
 function tmpDir(): string {
-  return mkdtempSync(join(tmpdir(), 'caveman-cli-test-'));
+  return mkdtempSync(join(tmpdir(), 'kontex-compress-cli-test-'));
 }
 
 describe('parseArgs', () => {

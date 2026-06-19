@@ -2,16 +2,16 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compressToCaveman } from './compress.js';
-import type { CavemanLevel } from './types.js';
+import { compress } from './compress.js';
+import type { CompressionLevel } from './types.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = require('../package.json');
 
-const USAGE = `caveman-compress [options] [file]
+const USAGE = `kontex-compress [options] [file]
 
-Compress text using caveman-style rules.
+Compress text using language-level rules.
 
 Options:
   -l, --level <level>  Compression level: off | lite | full | ultra | wenyan  [default: full]
@@ -24,7 +24,7 @@ If no file argument, reads from stdin (pipe mode).`;
 export interface ParsedArgs {
   help: boolean;
   version: boolean;
-  level: CavemanLevel;
+  level: CompressionLevel;
   output?: string;
   file?: string;
 }
@@ -50,11 +50,11 @@ export function parseArgs(argv: string[]): ParseResult {
     if (arg === '--level' || arg === '-l') {
       const val = argv[++i];
       if (!val) return { ok: false, error: '--level requires a value.', exitCode: 1 };
-      const valid: CavemanLevel[] = ['off', 'lite', 'full', 'ultra', 'wenyan'];
-      if (!valid.includes(val as CavemanLevel)) {
+      const valid: CompressionLevel[] = ['off', 'lite', 'full', 'ultra', 'wenyan'];
+      if (!valid.includes(val as CompressionLevel)) {
         return { ok: false, error: `Invalid level "${val}". Valid: ${valid.join(' | ')}`, exitCode: 1 };
       }
-      args.level = val as CavemanLevel;
+      args.level = val as CompressionLevel;
       continue;
     }
 
@@ -89,7 +89,7 @@ export async function run(args: ParsedArgs): Promise<string> {
     throw new Error(`Cannot read file: ${args.file}`);
   }
 
-  const result = compressToCaveman(content, args.level);
+  const result = compress(content, args.level);
   return result.compressed;
 }
 
@@ -125,7 +125,7 @@ export async function main(): Promise<void> {
       output = await run(result.args);
     } else {
       const content = await readStdin();
-      const compressed = compressToCaveman(content, result.args.level);
+      const compressed = compress(content, result.args.level);
       output = compressed.compressed;
     }
   } catch (err) {
