@@ -32,16 +32,7 @@ jobs:
       run-tests: true
       test-command: pnpm -r test:ci
       coverage-format: cobertura
-      set-version-command: |
-        for pkg in packages/*/package.json; do
-          if ! grep -q '"private": true' "$pkg"; then
-            node -e "
-              const p = require('./$pkg');
-              p.version = process.env.VERSION;
-              require('fs').writeFileSync('./$pkg', JSON.stringify(p, null, 2) + '\n');
-            "
-          fi
-        done
+      set-version-command: node scripts/set-versions.mjs
       publish-command: pnpm publish -r --no-git-checks
       force-publish: ${{ github.event_name == 'workflow_dispatch' && inputs.force-publish == 'true' || false }}
     secrets:
