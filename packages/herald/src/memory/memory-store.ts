@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { compressToCaveman } from '@gravionlabs/kontex-compress';
+import { compress } from '@gravionlabs/kontex-compress';
 import Database from 'better-sqlite3';
 
 export interface Observation {
@@ -24,7 +24,7 @@ export interface SessionRecord {
   totalSaved: number | null;
 }
 
-export class CavememStore {
+export class MemoryStore {
   private db: Database.Database;
 
   constructor(dbPath: string) {
@@ -61,7 +61,7 @@ export class CavememStore {
   }
 
   storeObservation(sessionId: string, phase: string, toolName: string, originalText: string): Observation {
-    const result = compressToCaveman(originalText, 'full');
+    const result = compress(originalText, 'full');
 
     this.db
       .prepare(
@@ -118,13 +118,13 @@ export class CavememStore {
   }
 }
 
-let store: CavememStore | null = null;
+let store: MemoryStore | null = null;
 
-export function getCavememStore(): CavememStore | null {
+export function getMemoryStore(): MemoryStore | null {
   return store;
 }
 
-export async function initCavememIntegration(dbPath?: string): Promise<void> {
+export async function initMemoryStore(dbPath?: string): Promise<void> {
   const resolvedPath = path.resolve(process.cwd(), dbPath || '.kontex/cavemem.db');
-  store = new CavememStore(resolvedPath);
+  store = new MemoryStore(resolvedPath);
 }

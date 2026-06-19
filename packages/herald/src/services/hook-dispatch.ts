@@ -8,8 +8,8 @@ import type {
   SessionStartPayload,
   UserPromptSubmittedPayload,
 } from '@gravionlabs/kontex-types';
-import { ContextBudget, globalCavemanMode, globalContextBudget, globalEventBus } from '@gravionlabs/kontex-types';
-import { getCavememStore } from '../memory/cavemem.js';
+import { ContextBudget, globalCompressionMode, globalContextBudget, globalEventBus } from '@gravionlabs/kontex-types';
+import { getMemoryStore } from '../memory/memory-store.js';
 
 let initialized = false;
 
@@ -21,12 +21,12 @@ export function initHookDispatch(): void {
     const p = payload as SessionStartPayload;
     globalContextBudget.reset();
 
-    const cavemem = getCavememStore();
-    if (cavemem) {
-      cavemem.storeSession({
+    const store = getMemoryStore();
+    if (store) {
+      store.storeSession({
         sessionId: p.sessionId,
         projectPath: (p.data.projectPath as string) ?? process.cwd(),
-        mode: globalCavemanMode.level,
+        mode: globalCompressionMode.level,
         startedAt: new Date(p.timestamp).toISOString(),
         endedAt: null,
         totalTokens: null,
@@ -41,13 +41,13 @@ export function initHookDispatch(): void {
     const p = payload as SessionEndPayload;
     const pct = Math.round(globalContextBudget.ratio * 100);
 
-    const cavemem = getCavememStore();
-    if (cavemem) {
-      const totalSaved = cavemem.sessionTotalSaved(p.sessionId);
-      cavemem.storeSession({
+    const store = getMemoryStore();
+    if (store) {
+      const totalSaved = store.sessionTotalSaved(p.sessionId);
+      store.storeSession({
         sessionId: p.sessionId,
         projectPath: process.cwd(),
-        mode: globalCavemanMode.level,
+        mode: globalCompressionMode.level,
         startedAt: new Date().toISOString(),
         endedAt: new Date(p.timestamp).toISOString(),
         totalTokens: globalContextBudget.usedTokens,
@@ -67,13 +67,13 @@ export function initHookDispatch(): void {
     const status = globalContextBudget.addTokens(tokens);
     logBudget(status);
 
-    const cavemem = getCavememStore();
-    if (cavemem) {
-      cavemem.storeObservation(p.sessionId, 'userPrompt', 'prompt', p.data.originalPrompt);
+    const store = getMemoryStore();
+    if (store) {
+      store.storeObservation(p.sessionId, 'userPrompt', 'prompt', p.data.originalPrompt);
     }
 
-    if (status === 'compress' && globalCavemanMode.level !== 'ultra') {
-      globalCavemanMode.setLevel('ultra');
+    if (status === 'compress' && globalCompressionMode.level !== 'ultra') {
+      globalCompressionMode.setLevel('ultra');
     }
   });
 
@@ -83,9 +83,9 @@ export function initHookDispatch(): void {
     const status = globalContextBudget.addTokens(tokens);
     logBudget(status);
 
-    const cavemem = getCavememStore();
-    if (cavemem) {
-      cavemem.storeObservation(p.sessionId, 'preCompact', 'compact', p.data.content);
+    const store = getMemoryStore();
+    if (store) {
+      store.storeObservation(p.sessionId, 'preCompact', 'compact', p.data.content);
     }
   });
 
@@ -105,13 +105,13 @@ export function initHookDispatch(): void {
       const status = globalContextBudget.addTokens(tokens);
       logBudget(status);
 
-      const cavemem = getCavememStore();
-      if (cavemem) {
-        cavemem.storeObservation(p.sessionId, 'toolResult', p.data.toolName, p.data.result);
+      const storeTool = getMemoryStore();
+      if (storeTool) {
+        storeTool.storeObservation(p.sessionId, 'toolResult', p.data.toolName, p.data.result);
       }
 
-      if (status === 'compress' && globalCavemanMode.level !== 'ultra') {
-        globalCavemanMode.setLevel('ultra');
+      if (status === 'compress' && globalCompressionMode.level !== 'ultra') {
+        globalCompressionMode.setLevel('ultra');
       }
     }
   });
@@ -120,13 +120,13 @@ export function initHookDispatch(): void {
     const p = payload as ErrorOccurredPayload;
     console.log(`[ctx] Error: ${p.data.errorType} - ${p.data.message}`);
 
-    const cavemem = getCavememStore();
-    if (cavemem) {
-      cavemem.storeObservation(p.sessionId, 'error', p.data.errorType, `${p.data.errorType}: ${p.data.message}`);
+    const store = getMemoryStore();
+    if (store) {
+      store.storeObservation(p.sessionId, 'error', p.data.errorType, `${p.data.errorType}: ${p.data.message}`);
     }
   });
 
-  globalCavemanMode.onChange((newLevel, oldLevel) => {
+  globalCompressionMode.onChange((newLevel, oldLevel) => {
     console.log(`[ctx] Mode: ${oldLevel} ? ${newLevel}`);
   });
 }

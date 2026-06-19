@@ -2,27 +2,27 @@ import { mkdtemp, mkdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { CavememStore } from '../src/memory/cavemem.js';
+import { MemoryStore } from '../src/memory/memory-store.js';
 
 let dbPath: string;
 
 beforeEach(async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'cavemem-test-'));
-  dbPath = path.join(dir, 'cavemem.db');
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'memory-store-test-'));
+  dbPath = path.join(dir, 'test.db');
 });
 
 afterEach(() => {
   // Cleanup handled by OS temp directory
 });
 
-describe('CavememStore', () => {
+describe('MemoryStore', () => {
   it('creates database file', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.close();
   });
 
   it('storeObservation stores with compression', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     const obs = store.storeObservation('sess_1', 'userPrompt', 'prompt', 'Please thank you for this long text with many unnecessary words that can be compressed.');
     expect(obs.sessionId).toBe('sess_1');
     expect(obs.phase).toBe('userPrompt');
@@ -33,7 +33,7 @@ describe('CavememStore', () => {
   });
 
   it('storeSession creates and retrieves session', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeSession({
       sessionId: 'sess_1',
       projectPath: '/test',
@@ -51,7 +51,7 @@ describe('CavememStore', () => {
   });
 
   it('storeSession updates existing session', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeSession({
       sessionId: 'sess_1',
       projectPath: '/test',
@@ -77,7 +77,7 @@ describe('CavememStore', () => {
   });
 
   it('recall returns observations in reverse chronological order', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'The first prompt with a really long text that should compress nicely please.');
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'The second prompt with an even longer text that is actually very compressible.');
     const results = store.recall(10);
@@ -88,7 +88,7 @@ describe('CavememStore', () => {
   });
 
   it('recall respects limit', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'The first prompt with really compressible text that works great.');
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'The second prompt with a long enough text that also compresses nicely okay.');
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'The third prompt with another compressible text for testing the limit.');
@@ -98,7 +98,7 @@ describe('CavememStore', () => {
   });
 
   it('sessionTotalSaved aggregates compression savings', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'Please thank you really just basically very long text here for testing purposes with lots of unnecessary information.');
     store.storeObservation('sess_1', 'userPrompt', 'prompt', 'Another very long text that should be compressed significantly because it contains many filler words and pleasantries.');
     const total = store.sessionTotalSaved('sess_1');
@@ -110,7 +110,7 @@ describe('CavememStore', () => {
   });
 
   it('multiple sessions are isolated in recall', () => {
-    const store = new CavememStore(dbPath);
+    const store = new MemoryStore(dbPath);
     store.storeObservation('sess_a', 'userPrompt', 'prompt', 'session a text');
     store.storeObservation('sess_b', 'userPrompt', 'prompt', 'session b text');
     const all = store.recall(10);
