@@ -1,5 +1,9 @@
 import { detectContentType } from './detect-content-type.js';
 import { compressText } from './compressors/text.js';
+import { compressMarkdown } from './compressors/markdown.js';
+import { compressJson } from './compressors/json.js';
+import { compressLog } from './compressors/log.js';
+import { compressDiff } from './compressors/diff.js';
 import type { CompressionLevel, CompressOptions, CompressionResult, ContentType } from './types.js';
 
 const MAX_INPUT_LENGTH = 50000;
@@ -39,10 +43,15 @@ export function compress(content: string, arg2?: CompressionLevel | CompressOpti
 
   switch (type) {
     case 'text':
+      return compressText(content, level);
     case 'markdown':
+      return compressMarkdown(content, level);
     case 'json':
+      return compressJson(content, level);
     case 'log':
+      return compressLog(content, level);
     case 'diff':
+      return compressDiff(content, level);
     default:
       return compressText(content, level);
   }
