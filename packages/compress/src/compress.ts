@@ -1,6 +1,6 @@
 import rules from './compression-rules.json' with { type: 'json' };
 import { detokenize, tokenize } from './tokenize.js';
-import type { CompressionLevel, CompressionResult, Segment } from './types.js';
+import type { CompressionLevel, CompressOptions, CompressionResult, Segment } from './types.js';
 
 type RuleCategory = 'fillers' | 'pleasantries' | 'hedges' | 'leaders' | 'articles';
 
@@ -90,7 +90,21 @@ function cleanPunctuation(text: string): string {
     .replace(/(\w)\s+\./, '$1.');
 }
 
-export function compress(content: string, level: CompressionLevel = 'full'): CompressionResult {
+export function compress(content: string): CompressionResult;
+export function compress(content: string, level: CompressionLevel): CompressionResult;
+export function compress(content: string, options: CompressOptions): CompressionResult;
+export function compress(content: string, arg2?: CompressionLevel | CompressOptions): CompressionResult {
+  let level: CompressionLevel;
+  if (arg2 === undefined) {
+    level = 'full';
+  } else if (typeof arg2 === 'string') {
+    level = arg2 as CompressionLevel;
+  } else if (typeof arg2 === 'object' && arg2 !== null) {
+    level = (arg2 as CompressOptions).level ?? 'full';
+  } else {
+    level = 'full';
+  }
+
   if (!content || content.trim().length === 0) {
     return { compressed: '', originalLen: 0, compressedLen: 0, ratio: 0 };
   }
