@@ -4,14 +4,14 @@ import { registerPreCompactHook } from './hooks/pre-compact.js';
 import { registerSessionLifecycleHooks } from './hooks/session-lifecycle.js';
 import { registerToolLifecycleHooks } from './hooks/tool-lifecycle.js';
 import { registerUserInteractionHooks } from './hooks/user-interaction.js';
-import { initCavememIntegration } from './memory/cavemem.js';
+import { initMemoryStore } from './memory/memory-store.js';
 import { initHookDispatch } from './services/hook-dispatch.js';
 import { registerRecallSessionTool } from './tools/recall-session.js';
-import { registerSetCavemanModeTool } from './tools/set-caveman-mode.js';
+import { registerSetCompressionLevelTool } from './tools/set-compression-level.js';
 import { registerStripAndCompactTool } from './tools/strip-and-compact.js';
 
 export interface CliPluginOptions {
-  cavememDbPath?: string;
+  memoryStorePath?: string;
 }
 
 export async function initCliPlugin(server: McpServer, options?: CliPluginOptions): Promise<void> {
@@ -20,11 +20,11 @@ export async function initCliPlugin(server: McpServer, options?: CliPluginOption
   registerUserInteractionHooks(server);
   registerToolLifecycleHooks(server);
   registerErrorHandlingHooks(server);
-  registerSetCavemanModeTool(server);
+  registerSetCompressionLevelTool(server);
   registerStripAndCompactTool(server);
   registerRecallSessionTool(server);
 
-  await initCavememIntegration(options?.cavememDbPath);
+  await initMemoryStore(options?.memoryStorePath);
 
   initHookDispatch();
 }

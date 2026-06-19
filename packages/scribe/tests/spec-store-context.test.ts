@@ -31,9 +31,9 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('returns uncompressed content when caveman mode is off', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode } = await import('@gravionlabs/kontex-types');
 
-    globalCavemanMode.setLevel('off');
+    globalCompressionMode.setLevel('off');
 
     const registry = new ProjectRegistry(tempDir);
     const store = new SpecStore(registry);
@@ -48,9 +48,9 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('compresses content when caveman mode is ultra', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode } = await import('@gravionlabs/kontex-types');
 
-    globalCavemanMode.setLevel('ultra');
+    globalCompressionMode.setLevel('ultra');
 
     const registry = new ProjectRegistry(tempDir);
     const store = new SpecStore(registry);
@@ -67,11 +67,11 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('uses phase default when caveman mode is off but phase mapping applies via getEffectiveLevel', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode } = await import('@gravionlabs/kontex-types');
 
     // Level is off by default, but getEffectiveLevel returns 'lite' for analysis
     // Since getContext checks effectiveLevel !== 'off', it should compress
-    globalCavemanMode.setLevel('off');
+    globalCompressionMode.setLevel('off');
 
     const registry = new ProjectRegistry(tempDir);
     const store = new SpecStore(registry);
@@ -83,9 +83,9 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('returns summary when mode is summary', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode } = await import('@gravionlabs/kontex-types');
 
-    globalCavemanMode.setLevel('off');
+    globalCompressionMode.setLevel('off');
 
     const registry = new ProjectRegistry(tempDir);
     const store = new SpecStore(registry);
@@ -100,9 +100,9 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('drops non-global files when budget is panic', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode, globalContextBudget } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode, globalContextBudget } = await import('@gravionlabs/kontex-types');
 
-    globalCavemanMode.setLevel('ultra');
+    globalCompressionMode.setLevel('ultra');
     // Fill budget to panic level
     globalContextBudget.addTokens(128000);
 
@@ -122,9 +122,9 @@ describe('SpecStore getContext with Phase 5 integration', () => {
   it('includes files matching knownVersions filter', async () => {
     const { ProjectRegistry } = await import('../src/services/project-registry.js');
     const { SpecStore } = await import('../src/services/spec-store.js');
-    const { globalCavemanMode } = await import('@gravionlabs/kontex-types');
+    const { globalCompressionMode } = await import('@gravionlabs/kontex-types');
 
-    globalCavemanMode.setLevel('off');
+    globalCompressionMode.setLevel('off');
 
     const registry = new ProjectRegistry(tempDir);
     const store = new SpecStore(registry);

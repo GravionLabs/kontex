@@ -1,20 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CavemanModeStore, PHASE_COMPRESSION_MAP } from '../src/caveman-mode.js';
+import { CompressionModeStore, PHASE_COMPRESSION_MAP } from '../src/compression-mode.js';
 
-describe('CavemanModeStore', () => {
+describe('CompressionModeStore', () => {
   it('default level is off', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     expect(store.level).toBe('off');
   });
 
   it('setLevel updates the level', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     store.setLevel('ultra');
     expect(store.level).toBe('ultra');
   });
 
   it('setLevel fires onChange listeners', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     const listener = vi.fn();
 
     store.onChange(listener);
@@ -25,7 +25,7 @@ describe('CavemanModeStore', () => {
   });
 
   it('onChange unsubscribe removes listener', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     const listener = vi.fn();
 
     const unsub = store.onChange(listener);
@@ -36,23 +36,23 @@ describe('CavemanModeStore', () => {
   });
 
   it('getEffectiveLevel returns phase default when level is off', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     expect(store.getEffectiveLevel('analysis')).toBe('lite');
     expect(store.getEffectiveLevel('implementation')).toBe('ultra');
   });
 
   it('getEffectiveLevel returns full for unknown phase', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     expect(store.getEffectiveLevel('unknown')).toBe('full');
   });
 
   it('getEffectiveLevel returns full when no phase given', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     expect(store.getEffectiveLevel()).toBe('full');
   });
 
   it('getEffectiveLevel uses explicit level when set', () => {
-    const store = new CavemanModeStore();
+    const store = new CompressionModeStore();
     store.setLevel('lite');
     expect(store.getEffectiveLevel('implementation')).toBe('lite');
   });

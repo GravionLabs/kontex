@@ -1,31 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { compressToCaveman } from '../src/compress.js';
+import { compress } from '../src/compress.js';
 import { tokenize, detokenize } from '../src/tokenize.js';
 
-describe('compressToCaveman', () => {
+describe('compress', () => {
   describe('happy path', () => {
     it('removes fillers at default level', () => {
       const input = 'This is just really basically simple.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toMatch(/\bjust\b|\breally\b|\bbasically\b/i);
       expect(result.ratio).toBeGreaterThan(0);
     });
 
     it('removes pleasantries', () => {
       const input = 'Please thank you for your help. Sure!';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toMatch(/\bplease\b|\bthank you\b|\bsure\b/i);
     });
 
     it('removes hedges', () => {
       const input = 'Perhaps this might work. Maybe you could potentially do this.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toMatch(/\bperhaps\b|\bmight\b|\bmaybe\b|\bcould potentially\b/i);
     });
 
     it('removes leaders', () => {
       const input = `I'll help.\nI will do it.\nLet me explain.`;
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toMatch(/I'll/);
       expect(result.compressed).not.toMatch(/I will/);
       expect(result.compressed).not.toMatch(/Let me/);
@@ -33,14 +33,14 @@ describe('compressToCaveman', () => {
 
     it('removes articles at full level', () => {
       const input = 'The quick brown fox jumps over a lazy dog.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toMatch(/\bthe\b/i);
       expect(result.compressed).not.toMatch(/\ba\b/i);
     });
 
     it('shortens abbreviations at ultra level', () => {
       const input = 'Database implementation requires authentication configuration.';
-      const result = compressToCaveman(input, 'ultra');
+      const result = compress(input, 'ultra');
       expect(result.compressed).toContain('DB');
       expect(result.compressed).toContain('impl');
       expect(result.compressed).toContain('auth');
@@ -49,7 +49,7 @@ describe('compressToCaveman', () => {
 
     it('wenyan level behaves like ultra', () => {
       const input = 'Database implementation requires authentication.';
-      const result = compressToCaveman(input, 'wenyan');
+      const result = compress(input, 'wenyan');
       expect(result.compressed).toContain('DB');
       expect(result.compressed).toContain('impl');
       expect(result.compressed).toContain('auth');
@@ -57,7 +57,7 @@ describe('compressToCaveman', () => {
 
     it('calculates compression ratio correctly', () => {
       const input = 'Please thank you really just basically simply very quite essentially.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.originalLen).toBe(input.length);
       expect(result.compressedLen).toBeLessThan(result.originalLen);
       expect(result.ratio).toBeGreaterThan(0);
@@ -66,8 +66,8 @@ describe('compressToCaveman', () => {
 
     it('defaults to full level when omitted', () => {
       const input = 'The quick brown fox. Please thank you.';
-      const withDefault = compressToCaveman(input);
-      const withFull = compressToCaveman(input, 'full');
+      const withDefault = compress(input);
+      const withFull = compress(input, 'full');
       expect(withDefault.compressed).toBe(withFull.compressed);
     });
   });
@@ -75,20 +75,20 @@ describe('compressToCaveman', () => {
   describe('level variants', () => {
     it('level off returns content unchanged', () => {
       const input = 'Please just try this.';
-      const result = compressToCaveman(input, 'off');
+      const result = compress(input, 'off');
       expect(result.compressed).toBe(input);
       expect(result.ratio).toBe(0);
     });
 
     it('level off bypasses max length check', () => {
       const big = 'x'.repeat(60000);
-      const result = compressToCaveman(big, 'off');
+      const result = compress(big, 'off');
       expect(result.compressed).toBe(big);
     });
 
     it('level lite removes fillers but keeps articles', () => {
       const input = 'The quick brown fox. Please thank you.';
-      const result = compressToCaveman(input, 'lite');
+      const result = compress(input, 'lite');
       expect(result.compressed).not.toContain('please');
       expect(result.compressed).not.toContain('thank');
       expect(result.compressed).toContain('The');
@@ -96,21 +96,21 @@ describe('compressToCaveman', () => {
 
     it('level lite does not use abbreviations', () => {
       const input = 'Database implementation.';
-      const result = compressToCaveman(input, 'lite');
+      const result = compress(input, 'lite');
       expect(result.compressed).toContain('Database');
       expect(result.compressed).toContain('implementation');
     });
 
     it('level full removes articles', () => {
       const input = 'The quick brown fox jumps over a lazy dog.';
-      const result = compressToCaveman(input, 'full');
+      const result = compress(input, 'full');
       expect(result.compressed).not.toMatch(/\bthe\b/i);
       expect(result.compressed).not.toMatch(/\ba\b/i);
     });
 
     it('level full does not use abbreviations', () => {
       const input = 'Database implementation.';
-      const result = compressToCaveman(input, 'full');
+      const result = compress(input, 'full');
       expect(result.compressed).not.toContain('DB');
     });
   });
@@ -118,50 +118,50 @@ describe('compressToCaveman', () => {
   describe('preserved content', () => {
     it('preserves fenced code blocks', () => {
       const input = `Please fix this.\n\`\`\`\njust really basically simple code\n\`\`\`\nThanks.`;
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('just really basically simple code');
       expect(result.compressed).toMatch(/```/);
     });
 
     it('preserves inline code', () => {
       const input = 'Please use `just.really.basically` function.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('`just.really.basically`');
     });
 
     it('preserves URLs', () => {
       const input = 'Please visit https://example.com/path.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('https://example.com/path');
     });
 
     it('preserves function calls', () => {
       const input = 'Please call myFunction(arg1, arg2) now.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('myFunction(arg1, arg2)');
     });
 
     it('preserves version numbers', () => {
       const input = 'Please upgrade to version 1.2.3.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('1.2.3');
     });
 
     it('preserves CONST_CASE identifiers', () => {
       const input = 'Use MAX_LENGTH constant.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('MAX_LENGTH');
     });
 
     it('preserves paths', () => {
       const input = 'Check src/services/compression.ts.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('src/services/compression.ts');
     });
 
     it('preserves frontmatter', () => {
       const input = `---\ntitle: Example\n---\nPlease thank you.`;
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('---\ntitle: Example\n---');
       expect(result.compressed).not.toMatch(/\bplease\b|\bthank\b/i);
     });
@@ -169,7 +169,7 @@ describe('compressToCaveman', () => {
 
   describe('edge cases', () => {
     it('handles empty input', () => {
-      const result = compressToCaveman('');
+      const result = compress('');
       expect(result.compressed).toBe('');
       expect(result.originalLen).toBe(0);
       expect(result.compressedLen).toBe(0);
@@ -177,7 +177,7 @@ describe('compressToCaveman', () => {
     });
 
     it('handles whitespace-only input', () => {
-      const result = compressToCaveman('   \n\n  ');
+      const result = compress('   \n\n  ');
       expect(result.compressed).toBe('');
       expect(result.originalLen).toBe(0);
       expect(result.ratio).toBe(0);
@@ -185,26 +185,26 @@ describe('compressToCaveman', () => {
 
     it('handles input with no removable words', () => {
       const input = 'DB auth config req res fn app.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed.length).toBeGreaterThan(0);
     });
 
     it('collapses multiple newlines', () => {
       const input = 'Line 1\n\n\n\nLine 2';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toContain('\n\n\n');
     });
 
     it('handles malformedfrontmatter (no closing marker) as body', () => {
       const input = `---\nno closing marker\nThis is content`;
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('---');
       expect(result.compressed).toContain('no closing marker');
     });
 
     it('handles content without frontmatter', () => {
       const input = 'Just a normal sentence without anything special.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).not.toContain('---');
     });
   });
@@ -212,14 +212,14 @@ describe('compressToCaveman', () => {
   describe('error cases', () => {
     it('throws on oversized input', () => {
       const bigInput = 'x'.repeat(50001);
-      expect(() => compressToCaveman(bigInput)).toThrow('Input exceeds maximum length');
+      expect(() => compress(bigInput)).toThrow('Input exceeds maximum length');
     });
   });
 
   describe('mixed content', () => {
     it('handles content with multiple preserved types and compression', () => {
       const input = 'Please visit https://example.com. Use `just_really` constant CONST_VAR.';
-      const result = compressToCaveman(input);
+      const result = compress(input);
       expect(result.compressed).toContain('https://example.com');
       expect(result.compressed).toContain('`just_really`');
       expect(result.compressed).toContain('CONST_VAR');

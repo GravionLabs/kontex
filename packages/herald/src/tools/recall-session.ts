@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getCavememStore } from '../memory/cavemem.js';
+import { getMemoryStore } from '../memory/memory-store.js';
 
 export function registerRecallSessionTool(server: McpServer): void {
   server.registerTool(
@@ -8,7 +8,7 @@ export function registerRecallSessionTool(server: McpServer): void {
     {
       title: 'Recall session',
       description:
-        'Retrieve compressed observations from cavemem — past session summaries, ' +
+        'Retrieve compressed observations from memory store — past session summaries, ' +
         'tool outputs, and compacted context. Helps agent recall what happened without full context reload.',
       inputSchema: {
         limit: z.number().min(1).max(100).optional().default(20).describe('Number of observations to recall'),
@@ -17,15 +17,15 @@ export function registerRecallSessionTool(server: McpServer): void {
       },
     },
     async ({ limit, sessionId, includeHistory }) => {
-      const cavemem = getCavememStore();
-      if (!cavemem) {
+      const store = getMemoryStore();
+      if (!store) {
         return {
-          content: [{ type: 'text', text: 'Cavemem store not initialized.' }],
+          content: [{ type: 'text', text: 'Memory store not initialized.' }],
           isError: true,
         };
       }
 
-      let observations = cavemem.recall(limit);
+      let observations = store.recall(limit);
 
       if (sessionId) {
         observations = observations.filter((o) => o.sessionId === sessionId);
@@ -44,7 +44,7 @@ export function registerRecallSessionTool(server: McpServer): void {
           createdAt: o.createdAt,
         })),
         totalSaved: observations.reduce((sum, o) => sum + (o.originalLen - o.compressedLen), 0),
-        sessionHistory: includeHistory ? cavemem.getSessionHistory(10) : undefined,
+        sessionHistory: includeHistory ? store.getSessionHistory(10) : undefined,
       };
 
       return {

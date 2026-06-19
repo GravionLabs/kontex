@@ -1,8 +1,8 @@
-import { compressToCaveman } from '@gravionlabs/kontex-compress';
-import { globalCavemanMode } from '@gravionlabs/kontex-types';
+import { compress } from '@gravionlabs/kontex-compress';
+import { globalCompressionMode } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getCavememStore } from '../memory/cavemem.js';
+import { getMemoryStore } from '../memory/memory-store.js';
 import { stripReasoningBlocks } from '../services/reasoning-stripper.js';
 
 export function registerStripAndCompactTool(server: McpServer): void {
@@ -11,30 +11,30 @@ export function registerStripAndCompactTool(server: McpServer): void {
     {
       title: 'Strip reasoning and compact',
       description:
-        'Strip <thinking> blocks from conversation content, apply caveman compression, ' +
-        'and store compacted observation in cavemem. Call before context compaction to prevent context rot.',
+        'Strip <thinking> blocks from conversation content, apply compression, ' +
+        'and store compacted observation in memory store. Call before context compaction to prevent context rot.',
       inputSchema: {
         content: z.string().describe('Conversation content to process'),
         level: z
           .enum(['off', 'lite', 'full', 'ultra', 'wenyan'])
           .optional()
-          .describe('Caveman compression level (defaults to current global level)'),
+          .describe('Compression level (defaults to current global level)'),
         sessionId: z.string().optional().describe('Optional session ID to associate with the observation'),
       },
     },
     async ({ content, level, sessionId }) => {
-      const compressLevel = level || globalCavemanMode.level;
+      const compressLevel = level || globalCompressionMode.level;
 
       const { stripped, removedChars, blockCount } = stripReasoningBlocks(content);
 
       const compressed =
         compressLevel !== 'off'
-          ? compressToCaveman(stripped, compressLevel)
+          ? compress(stripped, compressLevel)
           : { compressed: stripped, originalLen: stripped.length, compressedLen: stripped.length, ratio: 0 };
 
-      const cavemem = getCavememStore();
-      if (cavemem && sessionId) {
-        cavemem.storeObservation(sessionId, 'stripAndCompact', 'strip-and-compact', compressed.compressed);
+      const memStore = getMemoryStore();
+      if (memStore && sessionId) {
+        memStore.storeObservation(sessionId, 'stripAndCompact', 'strip-and-compact', compressed.compressed);
       }
 
       const originalTokens = Math.ceil(content.length / 4);

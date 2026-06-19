@@ -1,5 +1,5 @@
-import type { CavemanLevel } from '@gravionlabs/kontex-types';
-import { CAVEMAN_LEVELS, globalCavemanMode } from '@gravionlabs/kontex-types';
+import type { CompressionLevel } from '@gravionlabs/kontex-types';
+import { COMPRESSION_LEVELS, globalCompressionMode } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -14,15 +14,15 @@ function formatToolError(error: unknown, fallback: string) {
   };
 }
 
-export function registerSetCavemanModeTool(server: McpServer): void {
+export function registerSetCompressionLevelTool(server: McpServer): void {
   server.registerTool(
-    'set-caveman-mode',
+    'set-compression-level',
     {
-      title: 'Set caveman mode',
+      title: 'Set compression level',
       description: 'Set compression level for context output: off | lite | full | ultra | wenyan',
       inputSchema: {
         level: z
-          .enum(CAVEMAN_LEVELS as [string, ...string[]])
+          .enum(COMPRESSION_LEVELS as [string, ...string[]])
           .describe(
             'Compression level: off (none), lite (minimal), full (standard), ultra (aggressive), wenyan (classical)',
           ),
@@ -30,10 +30,10 @@ export function registerSetCavemanModeTool(server: McpServer): void {
     },
     async ({ level }) => {
       try {
-        const cavemanLevel = level as CavemanLevel;
-        globalCavemanMode.setLevel(cavemanLevel);
+        const cmpLevel = level as CompressionLevel;
+        globalCompressionMode.setLevel(cmpLevel);
 
-        const savings: Record<CavemanLevel, string> = {
+        const savings: Record<CompressionLevel, string> = {
           off: '0%',
           lite: '~15%',
           full: '~30%',
@@ -41,7 +41,7 @@ export function registerSetCavemanModeTool(server: McpServer): void {
           wenyan: '~45%',
         };
 
-        const summaries: Record<CavemanLevel, string> = {
+        const summaries: Record<CompressionLevel, string> = {
           off: 'No compression applied.',
           lite: 'Removes pleasantries, hedges, fillers, leaders.',
           full: 'Lite + articles removed.',
@@ -52,15 +52,15 @@ export function registerSetCavemanModeTool(server: McpServer): void {
         return {
           content: [
             textContent(
-              `## Caveman Mode: ${cavemanLevel}\n\n` +
-                `**Expected savings:** ${savings[cavemanLevel]}\n\n` +
-                `${summaries[cavemanLevel]}\n\n` +
+              `## Compression Mode: ${cmpLevel}\n\n` +
+                `**Expected savings:** ${savings[cmpLevel]}\n\n` +
+                `${summaries[cmpLevel]}\n\n` +
                 `Effective for next get-context call.`,
             ),
           ],
         };
       } catch (error) {
-        return formatToolError(error, 'Failed to set caveman mode.');
+        return formatToolError(error, 'Failed to set compression mode.');
       }
     },
   );

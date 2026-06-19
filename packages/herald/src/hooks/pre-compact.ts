@@ -1,9 +1,9 @@
-import { compressToCaveman } from '@gravionlabs/kontex-compress';
+import { compress } from '@gravionlabs/kontex-compress';
 import type { PreCompactPayload } from '@gravionlabs/kontex-types';
-import { globalCavemanMode, globalEventBus } from '@gravionlabs/kontex-types';
+import { globalCompressionMode, globalEventBus } from '@gravionlabs/kontex-types';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getCavememStore } from '../memory/cavemem.js';
+import { getMemoryStore } from '../memory/memory-store.js';
 import { stripReasoningBlocks } from '../services/reasoning-stripper.js';
 import { getCurrentSessionId } from './session-lifecycle.js';
 
@@ -13,7 +13,7 @@ export function registerPreCompactHook(server: McpServer): void {
     {
       title: 'Pre-compact hook',
       description:
-        'Strip reasoning blocks, apply caveman compression, store in cavemem. ' +
+        'Strip reasoning blocks, apply compression, store in memory store. ' +
         'Returns cleaned content for context compaction.',
       inputSchema: {
         content: z.string().describe('Text content to compact (conversation history with reasoning blocks)'),
@@ -25,8 +25,8 @@ export function registerPreCompactHook(server: McpServer): void {
       const { stripped, removedChars, blockCount } = stripReasoningBlocks(content);
 
       const compressLevel: 'lite' | 'full' | 'ultra' | 'wenyan' =
-        globalCavemanMode.level === 'off' ? 'full' : globalCavemanMode.level;
-      const compressed = compressToCaveman(stripped, compressLevel);
+        globalCompressionMode.level === 'off' ? 'full' : globalCompressionMode.level;
+      const compressed = compress(stripped, compressLevel);
 
       const payload: PreCompactPayload = {
         timestamp: Date.now(),
@@ -40,9 +40,9 @@ export function registerPreCompactHook(server: McpServer): void {
 
       globalEventBus.emit(payload);
 
-      const cavemem = getCavememStore();
-      if (cavemem) {
-        cavemem.storeObservation(sessionId, 'preCompact', 'compact', compressed.compressed);
+      const store = getMemoryStore();
+      if (store) {
+        store.storeObservation(sessionId, 'preCompact', 'compact', compressed.compressed);
       }
 
       const originalTokens = Math.ceil(content.length / 4);

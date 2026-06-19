@@ -1,15 +1,15 @@
 {
   "name": "@gravionlabs/kontex-compress",
   "version": "1.0.0",
-  "description": "Caveman-style text compression — strips filler, pleasantries, hedges, articles, and abbreviates terms by intensity level",
+  "description": "Text compression — strips filler, pleasantries, hedges, articles, and abbreviates terms by intensity level",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
   "exports": {
     ".": "./dist/index.js",
-    "./rules": "./dist/compression-rules.json"
+    "./compression-rules": "./dist/compression-rules.json"
   },
   "bin": {
-    "caveman-compress": "./bin/caveman-compress.js"
+    "kontex-compress": "./bin/kontex-compress.js"
   },
   "scripts": {
     "build": "tsc",
@@ -35,7 +35,7 @@
     "src/compression-rules.json"
   ],
   "keywords": [
-    "caveman",
+    "compress",
     "compression",
     "text",
     "token-optimization",
