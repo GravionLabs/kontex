@@ -6,7 +6,9 @@ import { registerToolLifecycleHooks } from './hooks/tool-lifecycle.js';
 import { registerUserInteractionHooks } from './hooks/user-interaction.js';
 import { initCavememIntegration } from './memory/cavemem.js';
 import { initHookDispatch } from './services/hook-dispatch.js';
+import { registerRecallSessionTool } from './tools/recall-session.js';
 import { registerSetCavemanModeTool } from './tools/set-caveman-mode.js';
+import { registerStripAndCompactTool } from './tools/strip-and-compact.js';
 
 export interface CliPluginOptions {
   cavememDbPath?: string;
@@ -19,6 +21,8 @@ export async function initCliPlugin(server: McpServer, options?: CliPluginOption
   registerToolLifecycleHooks(server);
   registerErrorHandlingHooks(server);
   registerSetCavemanModeTool(server);
+  registerStripAndCompactTool(server);
+  registerRecallSessionTool(server);
 
   await initCavememIntegration(options?.cavememDbPath);
 
