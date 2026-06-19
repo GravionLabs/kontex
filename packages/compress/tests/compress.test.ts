@@ -316,3 +316,32 @@ describe('detokenize', () => {
       expect(detokenize(segments)).toBe('');
     });
 });
+
+describe('maxTokens', () => {
+  it('does not truncate when under limit', () => {
+    const r = compress('short text', { level: 'full', maxTokens: 1000 });
+    expect(r.truncated).toBeUndefined();
+    expect(r.compressed).toBe('short text');
+  });
+
+  it('truncates at sentence boundary when over limit', () => {
+    const text = 'Foo. Bar. Baz.';
+    const r = compress(text, { level: 'off', maxTokens: 2 });
+    expect(r.truncated).toBe(true);
+    expect(r.compressed).toContain('Foo.');
+    expect(r.compressed).not.toContain('Baz.');
+    expect(r.compressed.length).toBeLessThan(text.length);
+  });
+
+  it('sets truncated flag on result', () => {
+    const text = 'Foo. '.repeat(200);
+    const r = compress(text, { level: 'off', maxTokens: 10 });
+    expect(r.truncated).toBe(true);
+  });
+
+  it('ignores maxTokens when 0', () => {
+    const text = 'Test content.';
+    const r = compress(text, { level: 'full', maxTokens: 0 });
+    expect(r.truncated).toBeUndefined();
+  });
+});

@@ -14,6 +14,7 @@ export function compress(content: string, options: CompressOptions): Compression
 export function compress(content: string, arg2?: CompressionLevel | CompressOptions): CompressionResult {
   let level: CompressionLevel;
   let contentType: ContentType | undefined;
+  let maxTokens: number | undefined;
   if (arg2 === undefined) {
     level = 'full';
   } else if (typeof arg2 === 'string') {
@@ -22,6 +23,7 @@ export function compress(content: string, arg2?: CompressionLevel | CompressOpti
     const opts = arg2 as CompressOptions;
     level = opts.level ?? 'full';
     contentType = opts.contentType;
+    maxTokens = opts.maxTokens;
   } else {
     level = 'full';
   }
@@ -33,26 +35,63 @@ export function compress(content: string, arg2?: CompressionLevel | CompressOpti
     return { compressed: '', originalLen: 0, compressedLen: 0, ratio: 0 };
   }
 
+  let result: CompressionResult;
+
   if (level === 'off') {
-    return { compressed: content, originalLen: content.length, compressedLen: content.length, ratio: 0 };
+    result = { compressed: content, originalLen: content.length, compressedLen: content.length, ratio: 0 };
+  } else {
+    if (content.length > MAX_INPUT_LENGTH) {
+      throw new Error(`Input exceeds maximum length of ${MAX_INPUT_LENGTH} characters.`);
+    }
+    switch (type) {
+      case 'text':
+        result = compressText(content, level);
+        break;
+      case 'markdown':
+        result = compressMarkdown(content, level);
+        break;
+      case 'json':
+        result = compressJson(content, level);
+        break;
+      case 'log':
+        result = compressLog(content, level);
+        break;
+      case 'diff':
+        result = compressDiff(content, level);
+        break;
+      default:
+        result = compressText(content, level);
+    }
   }
 
-  if (content.length > MAX_INPUT_LENGTH) {
-    throw new Error(`Input exceeds maximum length of ${MAX_INPUT_LENGTH} characters.`);
+  if (maxTokens !== undefined && maxTokens > 0) {
+    const estimatedTokens = Math.ceil(result.compressed.length / 4);
+    if (estimatedTokens > maxTokens) {
+      const maxChars = maxTokens * 4;
+      const truncated = truncateAtSentenceBoundary(result.compressed, maxChars);
+      const compressedLen = truncated.length;
+      const ratio = result.originalLen > 0 ? Math.round((1 - compressedLen / result.originalLen) * 100) : 0;
+      return { compressed: truncated, originalLen: result.originalLen, compressedLen, ratio, truncated: true };
+    }
   }
 
-  switch (type) {
-    case 'text':
-      return compressText(content, level);
-    case 'markdown':
-      return compressMarkdown(content, level);
-    case 'json':
-      return compressJson(content, level);
-    case 'log':
-      return compressLog(content, level);
-    case 'diff':
-      return compressDiff(content, level);
-    default:
-      return compressText(content, level);
+  return result;
+}
+
+function truncateAtSentenceBoundary(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+
+  const slice = text.slice(0, maxChars);
+  const lastBoundary = Math.max(
+    slice.lastIndexOf('. '),
+    slice.lastIndexOf('!\n'),
+    slice.lastIndexOf('?\n'),
+    slice.lastIndexOf('.\n'),
+    slice.lastIndexOf('\n\n'),
+  );
+
+  if (lastBoundary > maxChars * 0.5) {
+    return text.slice(0, lastBoundary + 1);
   }
+  return text.slice(0, maxChars);
 }
