@@ -10,16 +10,14 @@ import { listSpecFiles, loadSpecFile } from './markdown-loader.js';
 import { ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
 import {
   contentHash,
-  detectSpecType,
   getFileKind,
   type ReindexResult,
   type SearchResult,
   type SpecDirectory,
   type SpecFileInfo,
-  toNormalizedContent,
 } from './spec-types.js';
 
-interface StoredSpecRow {
+interface StoredSourceRow {
   path: string;
   raw: string;
   version: string;
@@ -28,7 +26,7 @@ interface StoredSpecRow {
 
 interface KnownPathRow {
   id: number;
-  path: string;
+  source_key: string;
 }
 
 function sanitizeFtsQuery(query: string): string {
@@ -67,32 +65,23 @@ export class SqliteSpecStore {
       .run(project, now);
 
     const files = await listSpecFiles(rootDir);
-    const readVersion = this.db.prepare('SELECT version FROM specs WHERE project = ? AND path = ?');
-    const upsertSpec = this.db.prepare(`
-      INSERT INTO specs (project, type, version, path, content, raw, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(project, path) DO UPDATE SET
-        type = excluded.type,
-        version = excluded.version,
-        content = excluded.content,
-        raw = excluded.raw,
-        updated_at = excluded.updated_at
-    `);
-    const getSpecId = this.db.prepare('SELECT id FROM specs WHERE project = ? AND path = ?');
-    const deleteFts = this.db.prepare('DELETE FROM specs_fts WHERE rowid = ?');
-    const insertFts = this.db.prepare('INSERT INTO specs_fts(rowid, path, raw, project) VALUES (?, ?, ?, ?)');
-    const deleteSpec = this.db.prepare('DELETE FROM specs WHERE project = ? AND path = ?');
-
+    const readVersion = this.db.prepare(
+      "SELECT version FROM sources WHERE source_type = 'spec' AND project = ? AND source_key = ?",
+    );
     const upsertSource = this.db.prepare(`
       INSERT INTO sources (source_type, project, source_key, content, version, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ('spec', ?, ?, ?, ?, ?)
       ON CONFLICT(source_type, project, source_key) DO UPDATE SET
         content = excluded.content,
         version = excluded.version,
         updated_at = excluded.updated_at
     `);
     const getSourceId = this.db.prepare(
-      'SELECT id FROM sources WHERE source_type = ? AND project = ? AND source_key = ?',
+      "SELECT id FROM sources WHERE source_type = 'spec' AND project = ? AND source_key = ?",
+    );
+    const deleteFts = this.db.prepare('DELETE FROM sources_fts WHERE rowid = ?');
+    const insertFts = this.db.prepare(
+      "INSERT INTO sources_fts(rowid, source_key, content, source_type, project) VALUES (?, ?, ?, 'spec', ?)",
     );
     const upsertEmbedding = this.db.prepare(`
       INSERT INTO embeddings (source_id, model, vector)
@@ -101,7 +90,11 @@ export class SqliteSpecStore {
         vector = excluded.vector
     `);
 
-    const knownPaths = this.db.prepare('SELECT id, path FROM specs WHERE project = ?').all(project) as KnownPathRow[];
+    const knownPaths = this.db
+      .prepare(
+        "SELECT id, source_key FROM sources WHERE source_type = 'spec' AND project = ? AND source_key NOT LIKE '%#chunk-%'",
+      )
+      .all(project) as KnownPathRow[];
     const seenPaths = new Set<string>();
 
     let updated = 0;
@@ -118,32 +111,23 @@ export class SqliteSpecStore {
         continue;
       }
 
-      const type = detectSpecType(loaded.relativePath, loaded.content);
-      const normalizedContent = toNormalizedContent(loaded.relativePath, loaded.content);
-      upsertSpec.run(project, type, hash, loaded.relativePath, normalizedContent, loaded.content, loaded.updatedAt);
+      upsertSource.run(project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
+      const sourceRow = getSourceId.get(project, loaded.relativePath) as { id: number };
 
-      const row = getSpecId.get(project, loaded.relativePath) as { id: number };
-      deleteFts.run(row.id);
-      insertFts.run(row.id, loaded.relativePath, loaded.content, project);
+      deleteFts.run(sourceRow.id);
+      insertFts.run(sourceRow.id, loaded.relativePath, loaded.content, project);
 
       if (this.embeddingProvider) {
-        const deleteOldSource = this.db.prepare(
-          'DELETE FROM sources WHERE source_type = ? AND project = ? AND source_key = ?',
-        );
-        deleteOldSource.run('spec', project, loaded.relativePath);
-
         const chunks = chunkMarkdown(loaded.content);
         for (const chunk of chunks) {
           const chunkKey = `${loaded.relativePath}#chunk-${chunk.chunkIndex}`;
           const chunkHash = contentHash(chunk.content);
-          upsertSource.run('spec', project, chunkKey, chunk.content, chunkHash, loaded.updatedAt);
-          const sourceRow = getSourceId.get('spec', project, chunkKey) as { id: number } | undefined;
-          if (sourceRow) {
-            updatedSources.push({ sourceId: sourceRow.id, content: chunk.content });
+          upsertSource.run(project, chunkKey, chunk.content, chunkHash, loaded.updatedAt);
+          const chunkRow = getSourceId.get(project, chunkKey) as { id: number } | undefined;
+          if (chunkRow) {
+            updatedSources.push({ sourceId: chunkRow.id, content: chunk.content });
           }
         }
-      } else {
-        upsertSource.run('spec', project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
       }
 
       updated += 1;
@@ -163,14 +147,13 @@ export class SqliteSpecStore {
 
     let deleted = 0;
     for (const entry of knownPaths) {
-      if (seenPaths.has(entry.path)) {
+      if (seenPaths.has(entry.source_key)) {
         continue;
       }
 
       deleteFts.run(entry.id);
-      deleteSpec.run(project, entry.path);
-      deleteOrphanedSources.run('spec', project, `${entry.path}#%`);
-      deleteOrphanedSources.run('spec', project, entry.path);
+      deleteOrphanedSources.run('spec', project, entry.source_key);
+      deleteOrphanedSources.run('spec', project, `${entry.source_key}#%`);
       deleted += 1;
     }
 
@@ -188,11 +171,21 @@ export class SqliteSpecStore {
   listSpecs(project: string, directory?: SpecDirectory): SpecFileInfo[] {
     const rows = directory
       ? (this.db
-          .prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? AND path LIKE ? ORDER BY path')
-          .all(project, `${directory}/%`) as StoredSpecRow[])
+          .prepare(
+            `SELECT source_key AS path, content AS raw, updated_at
+             FROM sources
+             WHERE source_type = 'spec' AND project = ? AND source_key LIKE ? AND source_key NOT LIKE '%#chunk-%'
+             ORDER BY source_key`,
+          )
+          .all(project, `${directory}/%`) as StoredSourceRow[])
       : (this.db
-          .prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? ORDER BY path')
-          .all(project) as StoredSpecRow[]);
+          .prepare(
+            `SELECT source_key AS path, content AS raw, updated_at
+             FROM sources
+             WHERE source_type = 'spec' AND project = ? AND source_key NOT LIKE '%#chunk-%'
+             ORDER BY source_key`,
+          )
+          .all(project) as StoredSourceRow[]);
 
     return rows.map((row) => ({
       relativePath: row.path,
@@ -205,8 +198,12 @@ export class SqliteSpecStore {
   loadSpec(project: string, relativePath: string): SpecFileInfo & { content: string } {
     const normalizedPath = ensureAllowedSpecRelativePath(relativePath);
     const row = this.db
-      .prepare('SELECT path, raw, updated_at FROM specs WHERE project = ? AND path = ?')
-      .get(project, normalizedPath) as StoredSpecRow | undefined;
+      .prepare(
+        `SELECT source_key AS path, content AS raw, updated_at
+         FROM sources
+         WHERE source_type = 'spec' AND project = ? AND source_key = ?`,
+      )
+      .get(project, normalizedPath) as StoredSourceRow | undefined;
 
     if (!row) {
       throw new SpecServerError('Spec file not found.');
@@ -232,13 +229,13 @@ export class SqliteSpecStore {
     try {
       const rows = this.db
         .prepare(
-          `SELECT s.path,
-                  snippet(specs_fts, 1, '**', '**', '...', 24) AS excerpt,
-                  bm25(specs_fts) AS score
-           FROM specs_fts
-           JOIN specs s ON specs_fts.rowid = s.id
-           WHERE specs_fts MATCH ? AND specs_fts.project = ?
-           ORDER BY bm25(specs_fts)
+          `SELECT s.source_key AS path,
+                  snippet(sources_fts, 1, '**', '**', '...', 24) AS excerpt,
+                  bm25(sources_fts) AS score
+           FROM sources_fts
+           JOIN sources s ON sources_fts.rowid = s.id
+           WHERE sources_fts MATCH ? AND sources_fts.source_type = 'spec' AND sources_fts.project = ?
+           ORDER BY bm25(sources_fts)
            LIMIT ?`,
         )
         .all(ftsQuery, project, limit) as Array<{ path: string; excerpt: string; score: number }>;
@@ -297,7 +294,12 @@ export class SqliteSpecStore {
 
   listRaw(project: string): Array<{ relativePath: string; content: string; version: string }> {
     const rows = this.db
-      .prepare('SELECT path, raw, version FROM specs WHERE project = ? ORDER BY path')
+      .prepare(
+        `SELECT source_key AS path, content AS raw, version
+         FROM sources
+         WHERE source_type = 'spec' AND project = ? AND source_key NOT LIKE '%#chunk-%'
+         ORDER BY source_key`,
+      )
       .all(project) as Array<{
       path: string;
       raw: string;
@@ -309,36 +311,14 @@ export class SqliteSpecStore {
 
   private initializeSchema(): void {
     this.db.exec(`
+      DROP TABLE IF EXISTS specs_fts;
+      DROP TABLE IF EXISTS specs;
       DROP TABLE IF EXISTS index_state;
 
       CREATE TABLE IF NOT EXISTS projects (
         name TEXT PRIMARY KEY,
         updated_at DATETIME NOT NULL
       );
-
-      CREATE TABLE IF NOT EXISTS specs (
-        id INTEGER PRIMARY KEY,
-        project TEXT NOT NULL,
-        type TEXT NOT NULL CHECK (type IN ('api', 'domain', 'workflow', 'validation', 'event', 'rule')),
-        version TEXT NOT NULL,
-        path TEXT NOT NULL,
-        content TEXT NOT NULL,
-        raw TEXT NOT NULL,
-        updated_at DATETIME NOT NULL,
-        UNIQUE(project, path),
-        FOREIGN KEY(project) REFERENCES projects(name) ON DELETE CASCADE
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_specs_project_type ON specs(project, type);
-      CREATE INDEX IF NOT EXISTS idx_specs_project_path ON specs(project, path);
-
-      CREATE VIRTUAL TABLE IF NOT EXISTS specs_fts USING fts5(
-        path, raw, project UNINDEXED
-      );
-
-      INSERT INTO specs_fts(rowid, path, raw, project)
-        SELECT id, path, raw, project FROM specs
-        WHERE id NOT IN (SELECT rowid FROM specs_fts);
 
       CREATE TABLE IF NOT EXISTS sources (
         id INTEGER PRIMARY KEY,
@@ -352,6 +332,14 @@ export class SqliteSpecStore {
       );
 
       CREATE INDEX IF NOT EXISTS idx_sources_type_project ON sources(source_type, project);
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS sources_fts USING fts5(
+        source_key, content, source_type UNINDEXED, project UNINDEXED
+      );
+
+      INSERT INTO sources_fts(rowid, source_key, content, source_type, project)
+        SELECT id, source_key, content, source_type, project FROM sources
+        WHERE id NOT IN (SELECT rowid FROM sources_fts);
 
       CREATE TABLE IF NOT EXISTS embeddings (
         source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
