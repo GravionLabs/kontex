@@ -1,6 +1,6 @@
 {
   "name": "@gravionlabs/kontex-compress",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Text compression — strips filler, pleasantries, hedges, articles, and abbreviates terms by intensity level",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
