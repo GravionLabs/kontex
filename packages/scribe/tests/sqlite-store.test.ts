@@ -64,15 +64,14 @@ describe('sqlite spec store', () => {
     expect(betaFiles.map((entry) => entry.relativePath)).toContain('docs/workflow.md');
 
     const db = new Database(dbPath, { readonly: true });
-    const columns = db.prepare('PRAGMA table_info(specs)').all() as Array<{ name: string }>;
+    const columns = db.prepare('PRAGMA table_info(sources)').all() as Array<{ name: string }>;
     expect(columns.map((column) => column.name)).toEqual([
       'id',
+      'source_type',
       'project',
-      'type',
-      'version',
-      'path',
+      'source_key',
       'content',
-      'raw',
+      'version',
       'updated_at',
     ]);
     db.close();
@@ -99,7 +98,7 @@ describe('sqlite spec store', () => {
 
     const db = new Database(dbPath, { readonly: true });
     const row = db
-      .prepare('SELECT version, raw FROM specs WHERE project = ? AND path = ?')
+      .prepare("SELECT version, content AS raw FROM sources WHERE source_type = 'spec' AND project = ? AND source_key = ?")
       .get('alpha', 'docs/rules.md') as { version: string; raw: string };
     expect(row.version).toMatch(/^[0-9a-f]{64}$/);
     expect(row.raw).toContain('New content');
@@ -130,7 +129,7 @@ describe('sqlite spec store', () => {
     expect(dbBytes.byteLength).toBeGreaterThan(0);
   });
 
-  it('creates specs_fts virtual table alongside specs', async () => {
+  it('creates sources_fts virtual table alongside sources', async () => {
     const root = await createProjectRoot('mcp-fts-schema-', {
       'docs/auth.md': '# Auth\nJWT authentication token',
     });
@@ -145,11 +144,11 @@ describe('sqlite spec store', () => {
 
     const db = new Database(dbPath, { readonly: true });
     const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'specs_fts%'")
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'sources_fts%'")
       .all() as Array<{ name: string }>;
     db.close();
 
-    expect(tables.map((t) => t.name)).toContain('specs_fts_content');
+    expect(tables.map((t) => t.name)).toContain('sources_fts_content');
   });
 
   it('returns BM25-ranked results for sqlite search', async () => {
@@ -352,9 +351,10 @@ describe('sqlite spec store', () => {
       source_type: string;
       source_key: string;
     }>;
-    expect(sources.length).toBe(1);
+    expect(sources.length).toBeGreaterThanOrEqual(2);
     expect(sources[0].source_type).toBe('spec');
-    expect(sources[0].source_key).toMatch(/^docs\/rules\.md#chunk-\d+$/);
+    expect(sources[0].source_key).toBe('docs/rules.md');
+    expect(sources.some((s) => /^docs\/rules\.md#chunk-\d+$/.test(s.source_key))).toBe(true);
 
     const embeddings = db.prepare('SELECT model, vector FROM embeddings').all() as Array<{
       model: string;
