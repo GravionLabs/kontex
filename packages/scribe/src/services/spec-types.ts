@@ -3,12 +3,12 @@ import path from 'node:path';
 
 import { parse as parseYaml } from 'yaml';
 
-export type SpecType = 'api' | 'domain' | 'workflow' | 'validation' | 'event' | 'rule';
+export type SpecType = 'api' | 'domain' | 'workflow' | 'validation' | 'event' | 'rule' | 'deploy';
 export type SpecDirectory = 'docs' | 'specs';
-export type WorkflowPhase = 'analysis' | 'planning' | 'implementation' | 'testing' | 'verification';
+export type WorkflowPhase = 'analysis' | 'planning' | 'implementation' | 'testing' | 'verification' | 'deploy';
 export type ContextMode = 'full' | 'summary';
 
-export const WORKFLOW_PHASES: WorkflowPhase[] = ['analysis', 'planning', 'implementation', 'testing', 'verification'];
+export const WORKFLOW_PHASES: WorkflowPhase[] = ['analysis', 'planning', 'implementation', 'testing', 'verification', 'deploy'];
 
 export const GLOBAL_CONTEXT_PATHS: string[] = ['specs/architecture/rules.md', 'docs/conventions.md'];
 
@@ -18,6 +18,7 @@ export const PHASE_SPEC_DIRS: Record<WorkflowPhase, string[]> = {
   implementation: ['specs/architecture', 'specs/api', 'specs/validation', 'specs/workflows'],
   testing: ['specs/validation', 'specs/workflows'],
   verification: ['specs/domain', 'specs/validation'],
+  deploy: ['specs/architecture', 'specs/deploy', 'specs/validation'],
 };
 
 export function phaseContextPath(phase: WorkflowPhase): string {

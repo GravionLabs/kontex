@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from '../src/services/markdown-loader.js';
-import { summarizeContent } from '../src/services/spec-types.js';
+import { detectSpecType, PHASE_SPEC_DIRS, summarizeContent, WORKFLOW_PHASES } from '../src/services/spec-types.js';
 import { scanTeamsContext } from '../src/services/teams-scanner.js';
 
 async function createFixtureRoot(): Promise<string> {
@@ -123,5 +123,23 @@ describe('summarizeContent', () => {
 
     expect(result).toContain('# assign-ticket');
     expect(result).toContain('Assign ticket to teammate.');
+  });
+});
+
+describe('WorkflowPhase and PHASE_SPEC_DIRS', () => {
+  it('WORKFLOW_PHASES includes deploy', () => {
+    expect(WORKFLOW_PHASES.includes('deploy')).toBe(true);
+  });
+
+  it('deploy is the last phase', () => {
+    expect(WORKFLOW_PHASES[WORKFLOW_PHASES.length - 1]).toBe('deploy');
+  });
+
+  it('PHASE_SPEC_DIRS.deploy has correct directories', () => {
+    expect(PHASE_SPEC_DIRS['deploy']).toEqual([
+      'specs/architecture',
+      'specs/deploy',
+      'specs/validation',
+    ]);
   });
 });
