@@ -8,6 +8,7 @@ export const PHASE_COMPRESSION_MAP: Record<string, CompressionLevel> = {
   implementation: 'ultra',
   testing: 'full',
   verification: 'lite',
+  deploy: 'lite',
 };
 
 export type CompressionModeChangeListener = (newLevel: CompressionLevel, oldLevel: CompressionLevel) => void;

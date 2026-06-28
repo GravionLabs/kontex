@@ -41,6 +41,11 @@ describe('CompressionModeStore', () => {
     expect(store.getEffectiveLevel('implementation')).toBe('ultra');
   });
 
+  it('getEffectiveLevel returns lite for deploy phase when level is off', () => {
+    const store = new CompressionModeStore();
+    expect(store.getEffectiveLevel('deploy')).toBe('lite');
+  });
+
   it('getEffectiveLevel returns full for unknown phase', () => {
     const store = new CompressionModeStore();
     expect(store.getEffectiveLevel('unknown')).toBe('full');
@@ -77,5 +82,9 @@ describe('PHASE_COMPRESSION_MAP', () => {
 
   it('maps verification to lite', () => {
     expect(PHASE_COMPRESSION_MAP.verification).toBe('lite');
+  });
+
+  it('maps deploy to lite', () => {
+    expect(PHASE_COMPRESSION_MAP.deploy).toBe('lite');
   });
 });
