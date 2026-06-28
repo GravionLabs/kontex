@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { allowedExtensions, ensureAllowedRootPath, ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
 import type { LoadedSpec, SearchResult, SpecDirectory, SpecFileInfo } from './spec-types.js';
-import { getFileKind } from './spec-types.js';
+import { getFileKind, parseFrontmatter } from './spec-types.js';
 
 const SPEC_DIRECTORIES: SpecDirectory[] = ['docs', 'specs'];
 
@@ -26,12 +26,15 @@ export async function loadSpecFile(rootDir: string, relativePath: string): Promi
 
   const content = await readFile(absolutePath, 'utf8');
   const stats = await stat(absolutePath);
+  const fm = parseFrontmatter(content);
 
   return {
     relativePath: normalizedPath,
     kind: getFileKind(normalizedPath),
     size: stats.size,
     updatedAt: stats.mtime.toISOString(),
+    status: fm.status,
+    owner: fm.owner,
     content,
   };
 }
@@ -102,6 +105,7 @@ async function walkSpecDirectory(rootDir: string, absoluteDirectory: string, res
         kind: getFileKind(relativePath),
         size: stats.size,
         updatedAt: stats.mtime.toISOString(),
+        status: 'draft',
       });
     }
   } catch (error) {

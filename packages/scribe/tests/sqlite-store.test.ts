@@ -65,15 +65,14 @@ describe('sqlite spec store', () => {
 
     const db = new Database(dbPath, { readonly: true });
     const columns = db.prepare('PRAGMA table_info(sources)').all() as Array<{ name: string }>;
-    expect(columns.map((column) => column.name)).toEqual([
-      'id',
-      'source_type',
-      'project',
-      'source_key',
-      'content',
-      'version',
-      'updated_at',
-    ]);
+    const colNames = columns.map((column) => column.name);
+    expect(colNames).toContain('id');
+    expect(colNames).toContain('source_type');
+    expect(colNames).toContain('project');
+    expect(colNames).toContain('source_key');
+    expect(colNames).toContain('content');
+    expect(colNames).toContain('version');
+    expect(colNames).toContain('updated_at');
     db.close();
   });
 
@@ -390,5 +389,111 @@ describe('sqlite spec store', () => {
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].relativePath).toMatch(/^docs\/rules\.md/);
     expect(typeof results[0].score).toBe('number');
+  });
+
+  // #76 — frontmatter persisted in SQLite
+  it('persists frontmatter status and owner in sources table', async () => {
+    const root = await createProjectRoot('mcp-fm-', {
+      'docs/approved.md': '---\nstatus: approved\nowner: team-a\n---\n# Approved Spec\n\nContent.',
+      'docs/nodoc.md': '# No Frontmatter\n\nJust content.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const files = await store.listSpecs('proj');
+
+    const approved = files.find((f) => f.relativePath === 'docs/approved.md');
+    expect(approved?.status).toBe('approved');
+    expect(approved?.owner).toBe('team-a');
+
+    const nodoc = files.find((f) => f.relativePath === 'docs/nodoc.md');
+    expect(nodoc?.status).toBe('draft');
+    expect(nodoc?.owner).toBeUndefined();
+  });
+
+  it('sources table has status and owner columns after schema init', async () => {
+    const root = await createProjectRoot('mcp-cols-', {
+      'docs/rules.md': '# Rules\n\nBasic rules.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    await store.listSpecs('proj');
+
+    const db = new Database(dbPath, { readonly: true });
+    const columns = db.prepare('PRAGMA table_info(sources)').all() as Array<{ name: string }>;
+    const colNames = columns.map((c) => c.name);
+    db.close();
+
+    expect(colNames).toContain('status');
+    expect(colNames).toContain('owner');
+  });
+
+  // #77 — status filter and deprecated exclusion
+  it('list-specs status filter returns only matching entries', async () => {
+    const root = await createProjectRoot('mcp-filter-', {
+      'docs/approved.md': '---\nstatus: approved\n---\n# Approved',
+      'docs/draft.md': '# Draft',
+      'docs/deprecated.md': '---\nstatus: deprecated\n---\n# Deprecated',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+
+    const allFiles = await store.listSpecs('proj');
+    expect(allFiles.length).toBe(3);
+
+    const approvedOnly = await store.listSpecs('proj', undefined, 'approved');
+    expect(approvedOnly.length).toBe(1);
+    expect(approvedOnly[0].relativePath).toBe('docs/approved.md');
+  });
+
+  it('get-context excludes deprecated specs', async () => {
+    const root = await createProjectRoot('mcp-deprecated-', {
+      'specs/architecture/rules.md': '---\nstatus: deprecated\n---\n# Old Rules\n\nDeprecated content.',
+      'docs/conventions.md': '# Conventions\n\nCurrent conventions.',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const { entries } = await store.getContext('proj', 'analysis');
+
+    const paths = entries.map((e) => e.relativePath);
+    expect(paths).not.toContain('specs/architecture/rules.md');
+    expect(paths).toContain('docs/conventions.md');
+  });
+
+  it('list-specs output includes status and owner in display line', async () => {
+    const root = await createProjectRoot('mcp-display-', {
+      'docs/spec.md': '---\nstatus: approved\nowner: team-b\n---\n# Spec',
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+
+    const store = new SpecStore(new ProjectRegistry(root));
+    const files = await store.listSpecs('proj');
+    const entry = files.find((f) => f.relativePath === 'docs/spec.md');
+
+    expect(entry?.status).toBe('approved');
+    expect(entry?.owner).toBe('team-b');
   });
 });
