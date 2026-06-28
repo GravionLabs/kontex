@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from '../src/services/markdown-loader.js';
-import { summarizeContent } from '../src/services/spec-types.js';
+import { detectSpecType, PHASE_SPEC_DIRS, summarizeContent, WORKFLOW_PHASES } from '../src/services/spec-types.js';
 import { scanTeamsContext } from '../src/services/teams-scanner.js';
 
 async function createFixtureRoot(): Promise<string> {
@@ -123,5 +123,53 @@ describe('summarizeContent', () => {
 
     expect(result).toContain('# assign-ticket');
     expect(result).toContain('Assign ticket to teammate.');
+  });
+});
+
+describe('WorkflowPhase and PHASE_SPEC_DIRS', () => {
+  it('WORKFLOW_PHASES includes deploy', () => {
+    expect(WORKFLOW_PHASES.includes('deploy')).toBe(true);
+  });
+
+  it('deploy is the last phase', () => {
+    expect(WORKFLOW_PHASES[WORKFLOW_PHASES.length - 1]).toBe('deploy');
+  });
+
+  it('PHASE_SPEC_DIRS.deploy has correct directories', () => {
+    expect(PHASE_SPEC_DIRS['deploy']).toEqual([
+      'specs/architecture',
+      'specs/deploy',
+      'specs/validation',
+    ]);
+  });
+});
+
+describe('detectSpecType', () => {
+  it('specs/deploy/runbook.md returns deploy', () => {
+    expect(detectSpecType('specs/deploy/runbook.md', '')).toBe('deploy');
+  });
+
+  it('specs/infra/helm.yaml returns deploy', () => {
+    expect(detectSpecType('specs/infra/helm.yaml', '')).toBe('deploy');
+  });
+
+  it('path with runbook keyword returns deploy', () => {
+    expect(detectSpecType('specs/ops/runbook.md', '')).toBe('deploy');
+  });
+
+  it('content with runbook keyword returns deploy', () => {
+    expect(detectSpecType('some/file.md', 'This is a runbook for the service')).toBe('deploy');
+  });
+
+  it('content with deployment keyword returns deploy', () => {
+    expect(detectSpecType('some/file.md', 'Describes the deployment process')).toBe('deploy');
+  });
+
+  it('specs/api/users.yaml still returns api (no regression)', () => {
+    expect(detectSpecType('specs/api/users.yaml', '')).toBe('api');
+  });
+
+  it('plain yaml with no deploy keyword returns api', () => {
+    expect(detectSpecType('specs/endpoints.yaml', '')).toBe('api');
   });
 });
