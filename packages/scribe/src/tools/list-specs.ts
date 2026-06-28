@@ -12,17 +12,26 @@ export function registerListSpecsTool(server: McpServer, store: SpecStore): void
       inputSchema: {
         project: projectSchema,
         directory: z.enum(['docs', 'specs']).optional().describe('Optional directory filter'),
+        status: z
+          .enum(['draft', 'approved', 'deprecated'])
+          .optional()
+          .describe('Optional status filter (draft | approved | deprecated)'),
       },
     },
-    async ({ project, directory }) => {
+    async ({ project, directory, status }) => {
       try {
-        const entries = await store.listSpecs(project, directory);
+        const entries = await store.listSpecs(project, directory, status);
         if (entries.length === 0) {
           return { content: [textContent('No specs found.')] };
         }
 
         const projectLabel = project?.trim() || store.defaultProject;
-        const text = entries.map((entry) => `- ${entry.relativePath} (${entry.kind}, ${entry.size} bytes)`).join('\n');
+        const text = entries
+          .map((entry) => {
+            const ownerPart = entry.owner ? `, owner: ${entry.owner}` : '';
+            return `- ${entry.relativePath} (${entry.kind}, ${entry.size} bytes, ${entry.status}${ownerPart})`;
+          })
+          .join('\n');
 
         return { content: [textContent(`# project: ${projectLabel}\n\n${text}`)] };
       } catch (error) {

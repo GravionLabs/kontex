@@ -17,9 +17,10 @@ import type {
   SearchResult,
   SpecDirectory,
   SpecFileInfo,
+  SpecStatus,
   WorkflowPhase,
 } from './spec-types.js';
-import { contentHash, GLOBAL_CONTEXT_PATHS, summarizeContent } from './spec-types.js';
+import { contentHash, GLOBAL_CONTEXT_PATHS, parseFrontmatter, summarizeContent } from './spec-types.js';
 import { SqliteSpecStore } from './sqlite-spec-store.js';
 import { scanTeamsContext, scanTeamsContextFromDocuments } from './teams-scanner.js';
 
@@ -53,14 +54,20 @@ export class SpecStore {
     return this.projectRegistry.listProjects();
   }
 
-  async listSpecs(project: string | undefined, directory?: SpecDirectory): Promise<SpecFileInfo[]> {
+  async listSpecs(
+    project: string | undefined,
+    directory?: SpecDirectory,
+    status?: SpecStatus,
+  ): Promise<SpecFileInfo[]> {
     const context = this.projectRegistry.resolveProjectRoot(project);
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
-      return this.sqliteStore.listSpecs(context.name, directory);
+      return this.sqliteStore.listSpecs(context.name, directory, status);
     }
 
-    return listSpecFiles(context.rootDir, directory);
+    // Filesystem mode: status is always 'draft'; skip filter
+    const files = await listSpecFiles(context.rootDir, directory);
+    return status ? files.filter((f) => f.status === status) : files;
   }
 
   async loadSpec(project: string | undefined, relativePath: string) {
@@ -106,16 +113,22 @@ export class SpecStore {
     if (this.sqliteStore) {
       await this.ensureIndexed(context.name, context.rootDir);
       const rows = this.sqliteStore.listRaw(context.name);
-      const versionsByPath = new Map(rows.map((row) => [row.relativePath, row.version]));
-      entries = getPhaseContextFromDocuments(rows, phase).map((entry) => ({
+      const nonDeprecated = rows.filter((row) => row.status !== 'deprecated');
+      const versionsByPath = new Map(nonDeprecated.map((row) => [row.relativePath, row.version]));
+      entries = getPhaseContextFromDocuments(nonDeprecated, phase).map((entry) => ({
         ...entry,
         version: versionsByPath.get(entry.relativePath) ?? contentHash(entry.content),
+        status: (rows.find((r) => r.relativePath === entry.relativePath)?.status ?? 'draft') as SpecStatus,
       }));
     } else {
-      entries = (await getPhaseContext(context.rootDir, phase)).map((entry) => ({
-        ...entry,
-        version: contentHash(entry.content),
-      }));
+      const rawEntries = await getPhaseContext(context.rootDir, phase);
+      entries = rawEntries
+        .filter((entry) => parseFrontmatter(entry.content).status !== 'deprecated')
+        .map((entry) => ({
+          ...entry,
+          version: contentHash(entry.content),
+          status: parseFrontmatter(entry.content).status,
+        }));
     }
 
     const totalMatched = entries.length;
