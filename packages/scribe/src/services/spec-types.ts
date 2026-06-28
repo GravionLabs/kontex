@@ -95,6 +95,14 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
   }
 
   if (
+    lowerPath.includes('deploy') ||
+    lowerPath.includes('runbook') ||
+    lowerPath.includes('infra')
+  ) {
+    return 'deploy';
+  }
+
+  if (
     lowerPath.includes('api') ||
     lowerPath.includes('endpoint') ||
     lowerPath.endsWith('.yaml') ||
@@ -118,6 +126,10 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
   }
   if (lowerContent.includes('rule')) {
     return 'rule';
+  }
+
+  if (lowerContent.includes('runbook') || lowerContent.includes('deployment')) {
+    return 'deploy';
   }
 
   return 'api';
