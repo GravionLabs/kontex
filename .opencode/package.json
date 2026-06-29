@@ -1,0 +1,22 @@
+{
+  "name": "@gravionlabs/kontex-plugin",
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.17.11",
+    "@gravionlabs/kontex-compress": "workspace:*",
+    "@gravionlabs/kontex-herald": "workspace:*",
+    "@gravionlabs/kontex-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.0",
+    "vitest": "^4.0.0"
+  }
+}
