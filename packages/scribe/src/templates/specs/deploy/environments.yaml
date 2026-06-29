@@ -1,0 +1,11 @@
+status: draft
+environments:
+  - name: dev
+    url: ""
+    secrets_path: ""
+  - name: staging
+    url: ""
+    secrets_path: ""
+  - name: prod
+    url: ""
+    secrets_path: ""
