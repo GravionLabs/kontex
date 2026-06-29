@@ -16,11 +16,6 @@ GitHub Copilot CLI plugin for prompt compression and persistent session memory.
 - **cavemem integration**: Persistent cross-session memory via local SQLite + caveman compression
 - **Use case**: Reduce token spend and remember prior decisions across sessions
 
-### `@gravionlabs/kontex-forge`
-MCP server for efficient dev tool execution (pytest, dotnet build, npm run, cargo, etc.).
-- **Tools**: Planned — pytest, dotnet, npm, cargo runners
-- **Use case**: Execute build/test commands from AI agents without manual CLI work
-
 ## Quick Start
 
 ```bash
@@ -57,8 +52,7 @@ pnpm inspect                  # Opens web UI to test tools interactively
 kontex/
 ├── packages/
 │   ├── scribe/             # @gravionlabs/kontex-scribe — MCP server for spec docs
-│   ├── herald/             # @gravionlabs/kontex-herald — CLI plugin with cavemem
-│   └── forge/              # @gravionlabs/kontex-forge — MCP server for dev tools
+│   └── herald/             # @gravionlabs/kontex-herald — CLI plugin with cavemem
 ├── pnpm-workspace.yaml     # Workspace config
 ├── tsconfig.base.json      # Shared TypeScript config
 ├── biome.json              # Linter & formatter
