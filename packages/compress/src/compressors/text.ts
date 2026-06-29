@@ -104,7 +104,12 @@ function extractFrontmatter(content: string): { frontmatter: string; body: strin
   return { frontmatter: '', body: content };
 }
 
-function processBody(body: string, level: CompressionLevel, categories: RuleCategory[], useAbbreviations: boolean): string {
+function processBody(
+  body: string,
+  level: CompressionLevel,
+  categories: RuleCategory[],
+  useAbbreviations: boolean,
+): string {
   const segments = tokenize(body);
   const processed = segments.map((seg) => {
     if (seg.preserved || seg.kind !== 'prose') return seg;

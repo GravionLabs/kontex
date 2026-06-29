@@ -25,7 +25,8 @@ export function registerCompressArtifactTool(server: McpServer): void {
     async ({ kind, content, level }) => {
       try {
         const resolvedLevel: CompressionLevel =
-          (level as CompressionLevel | undefined) ?? (globalCompressionMode.level !== 'off' ? globalCompressionMode.level : 'full');
+          (level as CompressionLevel | undefined) ??
+          (globalCompressionMode.level !== 'off' ? globalCompressionMode.level : 'full');
         const result = compressArtifact(kind, content, resolvedLevel);
 
         const summary =
