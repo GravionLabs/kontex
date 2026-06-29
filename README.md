@@ -1,20 +1,16 @@
 # kontex — Monorepo for Copilot CLI Plugins & MCP Servers
 
-A **pnpm monorepo** providing prompt compression, persistent session memory, and efficient dev tool execution for GitHub Copilot CLI.
+A **pnpm monorepo** providing prompt compression, persistent session memory, LLM model recommendations, and spec-doc serving for GitHub Copilot CLI and opencode.
 
 ## Packages
 
-### `@gravionlabs/kontex-scribe`
-MCP server that exposes AI-friendly spec documents from a project's `docs/` and `specs/` directories.
-- **Tools**: `get-context` (phases), `load-spec`, `search-specs`, `list-specs`, `compress-artifact`
-- **Storage**: SQLite + FTS5 or filesystem mode
-- **Use case**: Load project context efficiently without re-reading files every turn
-
-### `@gravionlabs/kontex-herald`
-GitHub Copilot CLI plugin for prompt compression and persistent session memory.
-- **preCompact hook**: Compresses prompts before `/compact` context reduction
-- **cavemem integration**: Persistent cross-session memory via local SQLite + caveman compression
-- **Use case**: Reduce token spend and remember prior decisions across sessions
+| Package | Role |
+|---|---|
+| `@gravionlabs/kontex-compress` | Caveman lossy compression (lite/full/ultra/wenyan), content-type aware (md/json/diff/log), CLI (`kontex-compress`) + lib |
+| `@gravionlabs/kontex-types` | Shared singletons: `globalCompressionMode`, `globalContextBudget`, `globalEventBus`, `EmbeddingProvider` interface |
+| `@gravionlabs/kontex-scribe` | MCP spec server — 8 tools (`get-context`, `load-spec`, `search-specs`, `list-specs`, `write-spec`, `reindex-specs`, `teams-context`, `compress-artifact`), SQLite+FTS5, optional embeddings |
+| `@gravionlabs/kontex-herald` | Copilot CLI plugin — lifecycle hooks, SQLite session memory, auto-escalate compression on budget pressure |
+| `@gravionlabs/kontex-oracle` | LLM model recommender from GH issue complexity — CLI (`oracle`) + MCP server |
 
 ## Quick Start
 
@@ -25,16 +21,11 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run dev mode (all packages)
-pnpm dev
-
 # Run tests (all packages)
 pnpm test
 pnpm test:watch
 
 # Lint & format (all packages)
-pnpm lint
-pnpm format
 pnpm check
 
 # Work in a single package
@@ -51,8 +42,13 @@ pnpm inspect                  # Opens web UI to test tools interactively
 ```
 kontex/
 ├── packages/
+│   ├── compress/           # @gravionlabs/kontex-compress — compression lib + CLI
+│   ├── types/              # @gravionlabs/kontex-types — shared singletons + types
 │   ├── scribe/             # @gravionlabs/kontex-scribe — MCP server for spec docs
-│   └── herald/             # @gravionlabs/kontex-herald — CLI plugin with cavemem
+│   ├── herald/             # @gravionlabs/kontex-herald — Copilot CLI plugin
+│   └── oracle/             # @gravionlabs/kontex-oracle — model recommender MCP + CLI
+├── .opencode/
+│   └── plugin/             # @gravionlabs/kontex-plugin — opencode plugin
 ├── pnpm-workspace.yaml     # Workspace config
 ├── tsconfig.base.json      # Shared TypeScript config
 ├── biome.json              # Linter & formatter
@@ -60,6 +56,15 @@ kontex/
     ├── copilot-instructions.md
     └── copilot-setup-steps.yml
 ```
+
+## Storage
+
+All packages share a single SQLite database at `.kontex/kontex.db` (path configurable via `KONTEX_DB_PATH`).
+
+| Package | Tables |
+|---|---|
+| scribe | `projects`, `specs`, `specs_fts`, `sources`, `embeddings`, `index_state` |
+| herald / plugin | `sessions`, `observations` |
 
 ## Development
 

@@ -51,14 +51,14 @@ npx vitest run tests/sqlite-store.test.ts
 
 **Path security**: paths are validated twice — once via Zod (`specPathSchema` in `rules.ts`) and once in `ensureAllowedSpecRelativePath` / `ensureAllowedRootPath`. Only `docs/` and `specs/` prefixes are allowed; extensions restricted to `.md .markdown .yaml .yml .json`.
 
-**`detectSpecType`** (`spec-types.ts`): inferred first from file path keywords, then from content. Six valid types: `api | domain | workflow | validation | event | rule`. YAML/YML files default to `api` if no other keyword matches.
+**`detectSpecType`** (`spec-types.ts`): inferred first from file path keywords, then from content. Seven valid types: `api | domain | workflow | validation | event | rule | deploy`. YAML/YML files default to `api` if no other keyword matches.
 
 ## Storage Modes
 
-| Mode               | Env                           | Behaviour                                                                                                    |
-|--------------------|-------------------------------|--------------------------------------------------------------------------------------------------------------|
-| `sqlite` (default) | —                             | Files indexed to `.kontex/specs.db`; reads served from DB; FTS5+BM25 search; SHA-256 auto-diff on every read |
-| `filesystem`       | `SPEC_SERVER_MODE=filesystem` | Files read directly from disk on every request; `reindex-specs` not available                                |
+| Mode               | Env                           | Behaviour                                                                                                      |
+|--------------------|-------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `sqlite` (default) | —                             | Files indexed to `.kontex/kontex.db`; reads served from DB; FTS5+BM25 search; SHA-256 auto-diff on every read |
+| `filesystem`       | `SPEC_SERVER_MODE=filesystem` | Files read directly from disk on every request; `reindex-specs` not available                                  |
 
 **Multi-project**: `SPEC_SERVER_PROJECTS=name=/abs/path;name2=/abs/path` — project names are lowercased on lookup.
 
@@ -73,6 +73,7 @@ Always loaded: `specs/architecture/rules.md` and `docs/conventions.md`.
 | `implementation` | `specs/architecture/`, `specs/api/`, `specs/validation/`, `specs/workflows/` |
 | `testing`        | `specs/validation/`, `specs/workflows/`                                      |
 | `verification`   | `specs/domain/`, `specs/validation/`                                         |
+| `deploy`         | `specs/architecture/`, `specs/deploy/`, `specs/validation/`                  |
 
 Use `mode: "summary"` when many files are loaded to get heading + first paragraph (~120 chars) per file, then call `load-spec` for the files you need in full.
 
