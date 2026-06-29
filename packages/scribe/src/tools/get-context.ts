@@ -18,8 +18,8 @@ export function registerGetContextTool(server: McpServer, store: SpecStore): voi
         phase: z
           .enum(WORKFLOW_PHASES as [string, ...string[]])
           .describe(
-          'Workflow phase: analysis | planning | implementation | testing | verification | deploy. ' +
-            'Each phase loads a different set of spec directories.',
+            'Workflow phase: analysis | planning | implementation | testing | verification | deploy. ' +
+              'Each phase loads a different set of spec directories.',
           ),
         mode: z
           .enum(['full', 'summary'])

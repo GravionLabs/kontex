@@ -1,10 +1,10 @@
-import { detectContentType } from './detect-content-type.js';
-import { compressText } from './compressors/text.js';
-import { compressMarkdown } from './compressors/markdown.js';
+import { compressDiff } from './compressors/diff.js';
 import { compressJson } from './compressors/json.js';
 import { compressLog } from './compressors/log.js';
-import { compressDiff } from './compressors/diff.js';
-import type { CompressionLevel, CompressOptions, CompressionResult, ContentType } from './types.js';
+import { compressMarkdown } from './compressors/markdown.js';
+import { compressText } from './compressors/text.js';
+import { detectContentType } from './detect-content-type.js';
+import type { CompressionLevel, CompressionResult, CompressOptions, ContentType } from './types.js';
 
 const MAX_INPUT_LENGTH = 50000;
 

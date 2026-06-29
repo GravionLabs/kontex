@@ -1,4 +1,5 @@
 import type { CompressionLevel } from '@gravionlabs/kontex-types';
+
 export type { CompressionLevel } from '@gravionlabs/kontex-types';
 
 export type ContentType = 'auto' | 'text' | 'markdown' | 'json' | 'log' | 'diff';

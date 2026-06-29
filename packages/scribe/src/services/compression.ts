@@ -50,7 +50,11 @@ function compressKindSpecific(kind: ArtifactKind, text: string): string {
   return text;
 }
 
-export function compressArtifact(kind: ArtifactKind, content: string, level: CompressionLevel = 'full'): CompressionResult {
+export function compressArtifact(
+  kind: ArtifactKind,
+  content: string,
+  level: CompressionLevel = 'full',
+): CompressionResult {
   const useAbbreviations = level === 'full' || level === 'ultra' || level === 'wenyan';
 
   const result = compress(content, level);

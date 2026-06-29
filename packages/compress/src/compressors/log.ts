@@ -1,8 +1,10 @@
 import type { CompressionLevel, CompressionResult } from '../types.js';
 
 function isErrorLine(line: string): boolean {
-  return /\b(error|fail|fatal|warn|exception|assert|FAILED|ERROR|FATAL|WARN|TRACE)\b/i.test(line) ||
-    /\b(?:at\s+|stack\s+trace|→|->)\b/i.test(line);
+  return (
+    /\b(error|fail|fatal|warn|exception|assert|FAILED|ERROR|FATAL|WARN|TRACE)\b/i.test(line) ||
+    /\b(?:at\s+|stack\s+trace|→|->)\b/i.test(line)
+  );
 }
 
 function isPassingLine(line: string, level: CompressionLevel): boolean {

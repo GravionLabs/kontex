@@ -59,7 +59,9 @@ function isLog(content: string): boolean {
     if (
       /\b(ERROR|FATAL|FAILED|TRACE|DEBUG|WARN(ING)?)\b/.test(line) ||
       /\[error\]|\[fatal\]|\[failed\]|\[warn(ing)?\]/i.test(line) ||
-      (line.includes('[INFO]') || line.includes('[DEBUG]') || line.includes('[TRACE]'))
+      line.includes('[INFO]') ||
+      line.includes('[DEBUG]') ||
+      line.includes('[TRACE]')
     ) {
       logLineCount++;
     }
