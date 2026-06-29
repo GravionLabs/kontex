@@ -242,9 +242,17 @@ export class SqliteSpecStore {
 
   async searchSpecs(project: string, query: string, limit: number): Promise<SearchResult[]> {
     if (this.embeddingProvider) {
-      return this.searchSpecsEmbedding(project, query, limit);
+      return this.hybridSearch(project, query, limit);
     }
 
+    return this.ftsSearch(project, query, limit);
+  }
+
+  /**
+   * Pure FTS5/BM25 search — used directly when no embedding provider is configured,
+   * and as one leg of hybrid search when a provider is present.
+   */
+  private ftsSearch(project: string, query: string, limit: number): SearchResult[] {
     const ftsQuery = sanitizeFtsQuery(query);
     if (!ftsQuery) return [];
 
@@ -257,6 +265,7 @@ export class SqliteSpecStore {
            FROM sources_fts
            JOIN sources s ON sources_fts.rowid = s.id
            WHERE sources_fts MATCH ? AND sources_fts.source_type = 'spec' AND sources_fts.project = ?
+             AND s.source_key NOT LIKE '%#chunk-%'
            ORDER BY bm25(sources_fts)
            LIMIT ?`,
         )
@@ -273,10 +282,34 @@ export class SqliteSpecStore {
     }
   }
 
-  private async searchSpecsEmbedding(project: string, query: string, limit: number): Promise<SearchResult[]> {
+  /**
+   * Hybrid BM25 + cosine retrieval with configurable alpha weighting.
+   *
+   * hybridScore = alpha * norm(bm25) + (1 - alpha) * norm(cosine)
+   *
+   * KONTEX_RETRIEVAL_ALPHA env var controls alpha (default 0.5).
+   * alpha=1.0 → pure BM25 order; alpha=0.0 → pure cosine order.
+   */
+  async hybridSearch(project: string, query: string, limit: number): Promise<SearchResult[]> {
     const provider = this.embeddingProvider;
-    if (!provider) return [];
+    if (!provider) return this.ftsSearch(project, query, limit);
 
+    const alpha = Math.max(0, Math.min(1, Number(process.env.KONTEX_RETRIEVAL_ALPHA ?? '0.5')));
+    const fetch2N = limit * 2;
+
+    // --- BM25 leg ---
+    const ftsRows = this.ftsSearch(project, query, fetch2N);
+    // BM25 values from SQLite FTS5 are negative; negate so higher = better
+    const bm25Map = new Map<string, { excerpt: string; raw: number }>();
+    for (const row of ftsRows) {
+      const existing = bm25Map.get(row.relativePath);
+      const negated = -(row.score ?? 0);
+      if (!existing || negated > existing.raw) {
+        bm25Map.set(row.relativePath, { excerpt: row.excerpt, raw: negated });
+      }
+    }
+
+    // --- Cosine leg ---
     const stored = this.db
       .prepare(
         `SELECT e.source_id, e.vector, s.source_key, s.content
@@ -291,27 +324,64 @@ export class SqliteSpecStore {
       content: string;
     }>;
 
-    if (stored.length === 0) return [];
+    const cosineMap = new Map<string, { excerpt: string; raw: number }>();
+    if (stored.length > 0) {
+      const queryVec = await provider.embed([query]);
+      if (queryVec.length > 0) {
+        const items = stored.map((row) => ({
+          sourceId: row.source_id,
+          vector: JSON.parse(row.vector) as number[],
+        }));
+        const top = topK(queryVec[0], items, fetch2N);
+        const storedById = new Map(stored.map((row) => [row.source_id, row]));
+        for (const match of top) {
+          const row = storedById.get(match.sourceId);
+          if (!row) continue;
+          const filePath = row.source_key.replace(/#chunk-\d+$/, '');
+          const existing = cosineMap.get(filePath);
+          if (!existing || match.score > existing.raw) {
+            cosineMap.set(filePath, { excerpt: row.content.slice(0, 200), raw: match.score });
+          }
+        }
+      }
+    }
 
-    const queryVec = await provider.embed([query]);
-    if (queryVec.length === 0) return [];
+    // --- Normalise [0,1] ---
+    const normalise = (map: Map<string, { excerpt: string; raw: number }>): Map<string, number> => {
+      const values = [...map.values()].map((v) => v.raw);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = max - min;
+      const norm = new Map<string, number>();
+      for (const [key, v] of map) {
+        norm.set(key, range === 0 ? 1 : (v.raw - min) / range);
+      }
+      return norm;
+    };
 
-    const items = stored.map((row) => ({
-      sourceId: row.source_id,
-      vector: JSON.parse(row.vector) as number[],
+    const bm25Norm = bm25Map.size > 0 ? normalise(bm25Map) : new Map<string, number>();
+    const cosineNorm = cosineMap.size > 0 ? normalise(cosineMap) : new Map<string, number>();
+
+    // --- Merge ---
+    const allPaths = new Set([...bm25Map.keys(), ...cosineMap.keys()]);
+    const merged: Array<{ relativePath: string; excerpt: string; score: number }> = [];
+
+    for (const filePath of allPaths) {
+      const bScore = bm25Norm.get(filePath) ?? 0;
+      const cScore = cosineNorm.get(filePath) ?? 0;
+      const hybrid = alpha * bScore + (1 - alpha) * cScore;
+      const excerpt = bm25Map.get(filePath)?.excerpt ?? cosineMap.get(filePath)?.excerpt ?? '';
+      merged.push({ relativePath: filePath, excerpt, score: hybrid });
+    }
+
+    merged.sort((a, b) => b.score - a.score);
+
+    return merged.slice(0, limit).map((r) => ({
+      relativePath: r.relativePath,
+      lineNumber: 0,
+      excerpt: r.excerpt,
+      score: r.score,
     }));
-    const top = topK(queryVec[0], items, limit);
-
-    const resultMap = new Map(stored.map((row) => [row.source_id, { key: row.source_key, content: row.content }]));
-    return top.map((match) => {
-      const info = resultMap.get(match.sourceId);
-      return {
-        relativePath: (info?.key ?? '').replace(/#chunk-\d+$/, ''),
-        lineNumber: 0,
-        excerpt: (info?.content ?? '').slice(0, 200),
-        score: match.score,
-      };
-    });
   }
 
   listRaw(project: string): Array<{ relativePath: string; content: string; version: string; status: SpecStatus }> {
