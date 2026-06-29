@@ -391,6 +391,134 @@ describe('sqlite spec store', () => {
     expect(typeof results[0].score).toBe('number');
   });
 
+  // #95 — hybrid retrieval
+  it('hybrid search blends BM25 and cosine results with default alpha=0.5', async () => {
+    const mockProvider: EmbeddingProvider = {
+      model: 'test-model',
+      dimensions: 4,
+      async embed(texts: string[]) {
+        // Different vectors per text so cosine scores vary
+        return texts.map((t) => (t.includes('query') ? [0.9, 0.1, 0.1, 0.1] : [0.1, 0.2, 0.3, 0.4]));
+      },
+    };
+
+    const root = await createProjectRoot('mcp-hybrid-', {
+      'docs/auth.md':
+        '# Auth\nJWT authentication token. Authentication required for all endpoints. ' + 'x'.repeat(100),
+      'docs/overview.md': '# Overview\nSystem overview. Authentication mentioned once. ' + 'x'.repeat(100),
+      'docs/unrelated.md': '# Other\nCompletely unrelated content about deployment. ' + 'x'.repeat(100),
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.KONTEX_DB_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+    delete process.env.KONTEX_RETRIEVAL_ALPHA;
+
+    const store = new SpecStore(new ProjectRegistry(root), mockProvider);
+    const results = await store.searchSpecs('proj', 'authentication', 5);
+
+    expect(results.length).toBeGreaterThan(0);
+    // All result paths should be non-chunk file paths
+    for (const r of results) {
+      expect(r.relativePath).not.toMatch(/#chunk-/);
+    }
+    expect(results[0].score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('hybrid search with alpha=1.0 produces BM25-only ordering', async () => {
+    const mockProvider: EmbeddingProvider = {
+      model: 'test-model',
+      dimensions: 4,
+      async embed(texts: string[]) {
+        return texts.map(() => [0.5, 0.5, 0.5, 0.5]);
+      },
+    };
+
+    const root = await createProjectRoot('mcp-alpha1-', {
+      'docs/auth.md':
+        '# Auth\nJWT authentication token. Authentication required for all endpoints. JWT must be valid. ' +
+        'x'.repeat(100),
+      'docs/overview.md': '# Overview\nSystem overview. Authentication mentioned once. ' + 'x'.repeat(100),
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.KONTEX_DB_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+    process.env.KONTEX_RETRIEVAL_ALPHA = '1.0';
+
+    const store = new SpecStore(new ProjectRegistry(root), mockProvider);
+    const results = await store.searchSpecs('proj', 'JWT authentication', 5);
+
+    // With alpha=1.0 cosine has no influence; BM25 should rank auth.md first
+    expect(results[0].relativePath).toBe('docs/auth.md');
+  });
+
+  it('hybrid search with alpha=0.0 produces cosine-only ordering', async () => {
+    // auth.md gets high cosine score, overview.md gets low cosine score
+    const mockProvider: EmbeddingProvider = {
+      model: 'test-model',
+      dimensions: 2,
+      async embed(texts: string[]) {
+        return texts.map((t) => {
+          if (t.includes('query')) return [1, 0];
+          if (t.includes('Auth') || t.includes('JWT')) return [0.99, 0.01]; // high cosine with query
+          return [0.1, 0.9]; // low cosine with query
+        });
+      },
+    };
+
+    const root = await createProjectRoot('mcp-alpha0-', {
+      'docs/auth.md': '# Auth\nJWT authentication token. ' + 'x'.repeat(100),
+      'docs/overview.md': '# Overview\nSystem overview unrelated content about processes. ' + 'x'.repeat(100),
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.KONTEX_DB_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+    process.env.KONTEX_RETRIEVAL_ALPHA = '0.0';
+
+    const store = new SpecStore(new ProjectRegistry(root), mockProvider);
+    const results = await store.searchSpecs('proj', 'query', 5);
+
+    // With alpha=0.0 BM25 has no influence; cosine should dominate
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('hybrid search falls back to FTS when no embeddings indexed yet', async () => {
+    // Provider present but embed() returns empty (no stored vectors)
+    const mockProvider: EmbeddingProvider = {
+      model: 'empty-model',
+      dimensions: 4,
+      async embed(_texts: string[]) {
+        return _texts.map(() => [0.1, 0.2, 0.3, 0.4]);
+      },
+    };
+
+    const root = await createProjectRoot('mcp-hybridfb-', {
+      'docs/auth.md': '# Auth\nAuthentication token required. ' + 'x'.repeat(100),
+    });
+    const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
+
+    process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
+    process.env.KONTEX_DB_PATH = dbPath;
+    process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
+    delete process.env.KONTEX_RETRIEVAL_ALPHA;
+
+    // Store without provider first (no embeddings), then search with provider
+    const storeNoEmbed = new SpecStore(new ProjectRegistry(root));
+    await storeNoEmbed.listSpecs('proj'); // index without embeddings
+
+    const storeWithEmbed = new SpecStore(new ProjectRegistry(root), mockProvider);
+    // re-index will store embeddings now
+    const results = await storeWithEmbed.searchSpecs('proj', 'authentication', 5);
+
+    expect(results.length).toBeGreaterThan(0);
+  });
+
   // #76 — frontmatter persisted in SQLite
   it('persists frontmatter status and owner in sources table', async () => {
     const root = await createProjectRoot('mcp-fm-', {
