@@ -2,6 +2,19 @@
 
 pnpm monorepo with TypeScript MCP servers, CLI plugins, and shared packages.
 
+## Packages
+
+| Package | Role |
+|---|---|
+| `@gravionlabs/kontex-compress` | Compression lib + CLI (`kontex-compress`) |
+| `@gravionlabs/kontex-types` | Shared singletons: `globalCompressionMode`, `globalContextBudget`, `globalEventBus` |
+| `@gravionlabs/kontex-scribe` | MCP spec server — 8 tools, SQLite+FTS5, optional embeddings |
+| `@gravionlabs/kontex-herald` | Copilot CLI plugin — lifecycle hooks, SQLite session memory |
+| `@gravionlabs/kontex-oracle` | Model recommender MCP + CLI (`oracle`) |
+| `@gravionlabs/kontex-plugin` | opencode plugin — session memory bridge, compression level tool |
+
+All packages share `.kontex/kontex.db` (path: `KONTEX_DB_PATH`).
+
 ## Commands
 
 ```bash
@@ -51,9 +64,55 @@ pnpm check         # biome lint + format
 2. Add to `ProjectConfig` type
 3. Document in `references/env-vars.md`
 
+### Use compress lib
+
+```ts
+import { compress } from '@gravionlabs/kontex-compress';
+import { globalCompressionMode } from '@gravionlabs/kontex-types';
+
+const level = globalCompressionMode.getEffectiveLevel('implementation');
+const result = compress(text, level);
+// result.compressed, result.originalLen, result.compressedLen, result.ratio
+```
+
+Compression levels: `off | lite | full | ultra | wenyan` (increasing aggressiveness).
+Content-type detection is automatic — markdown, JSON, diff, log, and plain text each have tailored compressors.
+
+### Use oracle CLI
+
+```bash
+# Recommend model from issue title + body
+oracle recommend-model --title "feat: add search" --body "Needs FTS5 indexing..." --provider opencode
+
+# JSON output (for CI)
+oracle recommend-model --title "fix: typo" --json
+```
+
+Oracle scores issues on complexity (scope, risk, labels) and returns `sonnet` or `mini` recommendation.
+
+### Recall herald session memory
+
+```ts
+import { getMemoryStore } from '@gravionlabs/kontex-herald/dist/memory/memory-store.js';
+
+const store = getMemoryStore();
+const recent = store?.recall(10); // last 10 observations
+```
+
+### Configure opencode plugin
+
+Plugin at `.opencode/plugin/kontex.ts` loads automatically via `.opencode/package.json`.
+
+Env vars:
+- `KONTEX_DB_PATH` — path to shared SQLite DB (default `.kontex/kontex.db`)
+- `KONTEX_AUTOLOAD_CONTEXT` — set `true` to auto-call scribe `get-context` on session start
+
+Available MCP tool inside opencode sessions:
+- `set-compression-level` — accepts `off | lite | full | ultra | wenyan`, returns expected savings %
+
 ### Implement an EmbeddingProvider plugin
 
-1. Implement `EmbeddingProvider` from `@kontex/types`
+1. Implement `EmbeddingProvider` from `@gravionlabs/kontex-types`
 2. Pass instance to `createServer(embeddingProvider)` in `packages/scribe/src/index.ts`
 
 ## Conventions

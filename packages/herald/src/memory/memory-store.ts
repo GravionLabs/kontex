@@ -125,6 +125,6 @@ export function getMemoryStore(): MemoryStore | null {
 }
 
 export async function initMemoryStore(dbPath?: string): Promise<void> {
-  const resolvedPath = path.resolve(process.cwd(), dbPath || '.kontex/cavemem.db');
+  const resolvedPath = path.resolve(process.cwd(), dbPath || process.env.KONTEX_DB_PATH || '.kontex/kontex.db');
   store = new MemoryStore(resolvedPath);
 }

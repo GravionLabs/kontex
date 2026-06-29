@@ -53,7 +53,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${alphaRoot};beta=${betaRoot}`;
 
     const store = new SpecStore(new ProjectRegistry(alphaRoot));
@@ -83,7 +83,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -114,7 +114,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'alpha';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `alpha=${alphaRoot};beta=${betaRoot}`;
 
     const store = new SpecStore(new ProjectRegistry(alphaRoot));
@@ -135,7 +135,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -160,7 +160,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -182,7 +182,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -210,7 +210,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -229,7 +229,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -248,7 +248,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -269,7 +269,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -313,7 +313,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -339,7 +339,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root), mockProvider);
@@ -380,7 +380,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root), mockProvider);
@@ -400,7 +400,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -422,7 +422,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -447,7 +447,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -468,7 +468,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));
@@ -486,7 +486,7 @@ describe('sqlite spec store', () => {
     const dbPath = path.join(await mkdtemp(path.join(os.tmpdir(), 'mcp-db-')), 'specs.db');
 
     process.env.SPEC_SERVER_DEFAULT_PROJECT = 'proj';
-    process.env.SPEC_SERVER_SQLITE_PATH = dbPath;
+    process.env.KONTEX_DB_PATH = dbPath;
     process.env.SPEC_SERVER_PROJECTS = `proj=${root}`;
 
     const store = new SpecStore(new ProjectRegistry(root));

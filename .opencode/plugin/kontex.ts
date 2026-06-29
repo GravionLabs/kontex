@@ -20,9 +20,9 @@ const SAVINGS_PCT: Record<CompressionLevel, string> = {
 };
 
 export const server: Plugin = async (input: PluginInput, _options?: PluginOptions) => {
-  const dbPath = process.env.KONTEX_CAVEMEM_PATH
-    ? path.resolve(input.directory, process.env.KONTEX_CAVEMEM_PATH)
-    : path.resolve(input.directory, '.kontex/cavemem.db');
+  const dbPath = process.env.KONTEX_DB_PATH
+    ? path.resolve(input.directory, process.env.KONTEX_DB_PATH)
+    : path.resolve(input.directory, '.kontex/kontex.db');
 
   const memStore = new MemoryStore(dbPath);
   const sessionId = createSessionId();

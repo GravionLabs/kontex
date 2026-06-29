@@ -48,10 +48,7 @@ function loadProjectConfig(rootDir: string): ProjectConfig {
   const defaultProject = normalizeProjectName(
     process.env.SPEC_SERVER_DEFAULT_PROJECT || path.basename(path.resolve(rootDir)) || 'default',
   );
-  const sqlitePath = resolvePossiblyRelative(
-    rootDir,
-    process.env.SPEC_SERVER_SQLITE_PATH || path.join('.kontex', 'specs.db'),
-  );
+  const sqlitePath = resolvePossiblyRelative(rootDir, process.env.KONTEX_DB_PATH || path.join('.kontex', 'kontex.db'));
 
   return { mode, defaultProject, sqlitePath };
 }
