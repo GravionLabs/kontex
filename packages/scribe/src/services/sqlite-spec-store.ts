@@ -11,10 +11,12 @@ import { ensureAllowedSpecRelativePath, SpecServerError } from './rules.js';
 import {
   contentHash,
   getFileKind,
+  parseFrontmatter,
   type ReindexResult,
   type SearchResult,
   type SpecDirectory,
   type SpecFileInfo,
+  type SpecStatus,
 } from './spec-types.js';
 
 interface StoredSourceRow {
@@ -22,6 +24,8 @@ interface StoredSourceRow {
   raw: string;
   version: string;
   updated_at: string;
+  status: string;
+  owner: string | null;
 }
 
 interface KnownPathRow {
@@ -69,12 +73,14 @@ export class SqliteSpecStore {
       "SELECT version FROM sources WHERE source_type = 'spec' AND project = ? AND source_key = ?",
     );
     const upsertSource = this.db.prepare(`
-      INSERT INTO sources (source_type, project, source_key, content, version, updated_at)
-      VALUES ('spec', ?, ?, ?, ?, ?)
+      INSERT INTO sources (source_type, project, source_key, content, version, updated_at, status, owner)
+      VALUES ('spec', ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(source_type, project, source_key) DO UPDATE SET
         content = excluded.content,
         version = excluded.version,
-        updated_at = excluded.updated_at
+        updated_at = excluded.updated_at,
+        status = excluded.status,
+        owner = excluded.owner
     `);
     const getSourceId = this.db.prepare(
       "SELECT id FROM sources WHERE source_type = 'spec' AND project = ? AND source_key = ?",
@@ -111,7 +117,16 @@ export class SqliteSpecStore {
         continue;
       }
 
-      upsertSource.run(project, loaded.relativePath, loaded.content, hash, loaded.updatedAt);
+      const fm = parseFrontmatter(loaded.content);
+      upsertSource.run(
+        project,
+        loaded.relativePath,
+        loaded.content,
+        hash,
+        loaded.updatedAt,
+        fm.status,
+        fm.owner ?? null,
+      );
       const sourceRow = getSourceId.get(project, loaded.relativePath) as { id: number };
 
       deleteFts.run(sourceRow.id);
@@ -122,7 +137,7 @@ export class SqliteSpecStore {
         for (const chunk of chunks) {
           const chunkKey = `${loaded.relativePath}#chunk-${chunk.chunkIndex}`;
           const chunkHash = contentHash(chunk.content);
-          upsertSource.run(project, chunkKey, chunk.content, chunkHash, loaded.updatedAt);
+          upsertSource.run(project, chunkKey, chunk.content, chunkHash, loaded.updatedAt, fm.status, fm.owner ?? null);
           const chunkRow = getSourceId.get(project, chunkKey) as { id: number } | undefined;
           if (chunkRow) {
             updatedSources.push({ sourceId: chunkRow.id, content: chunk.content });
@@ -168,30 +183,35 @@ export class SqliteSpecStore {
     };
   }
 
-  listSpecs(project: string, directory?: SpecDirectory): SpecFileInfo[] {
+  listSpecs(project: string, directory?: SpecDirectory, status?: SpecStatus): SpecFileInfo[] {
+    const statusClause = status ? 'AND status = ?' : '';
     const rows = directory
       ? (this.db
           .prepare(
-            `SELECT source_key AS path, content AS raw, updated_at
+            `SELECT source_key AS path, content AS raw, updated_at, status, owner
              FROM sources
              WHERE source_type = 'spec' AND project = ? AND source_key LIKE ? AND source_key NOT LIKE '%#chunk-%'
+             ${statusClause}
              ORDER BY source_key`,
           )
-          .all(project, `${directory}/%`) as StoredSourceRow[])
+          .all(...[project, `${directory}/%`].concat(status ? [status] : [])) as StoredSourceRow[])
       : (this.db
           .prepare(
-            `SELECT source_key AS path, content AS raw, updated_at
+            `SELECT source_key AS path, content AS raw, updated_at, status, owner
              FROM sources
              WHERE source_type = 'spec' AND project = ? AND source_key NOT LIKE '%#chunk-%'
+             ${statusClause}
              ORDER BY source_key`,
           )
-          .all(project) as StoredSourceRow[]);
+          .all(...[project].concat(status ? [status] : [])) as StoredSourceRow[]);
 
     return rows.map((row) => ({
       relativePath: row.path,
       kind: getFileKind(row.path),
       size: Buffer.byteLength(row.raw, 'utf8'),
       updatedAt: row.updated_at,
+      status: (row.status ?? 'draft') as SpecStatus,
+      owner: row.owner ?? undefined,
     }));
   }
 
@@ -199,7 +219,7 @@ export class SqliteSpecStore {
     const normalizedPath = ensureAllowedSpecRelativePath(relativePath);
     const row = this.db
       .prepare(
-        `SELECT source_key AS path, content AS raw, updated_at
+        `SELECT source_key AS path, content AS raw, updated_at, status, owner
          FROM sources
          WHERE source_type = 'spec' AND project = ? AND source_key = ?`,
       )
@@ -214,6 +234,8 @@ export class SqliteSpecStore {
       kind: getFileKind(row.path),
       size: Buffer.byteLength(row.raw, 'utf8'),
       updatedAt: row.updated_at,
+      status: (row.status ?? 'draft') as SpecStatus,
+      owner: row.owner ?? undefined,
       content: row.raw,
     };
   }
@@ -292,10 +314,10 @@ export class SqliteSpecStore {
     });
   }
 
-  listRaw(project: string): Array<{ relativePath: string; content: string; version: string }> {
+  listRaw(project: string): Array<{ relativePath: string; content: string; version: string; status: SpecStatus }> {
     const rows = this.db
       .prepare(
-        `SELECT source_key AS path, content AS raw, version
+        `SELECT source_key AS path, content AS raw, version, status
          FROM sources
          WHERE source_type = 'spec' AND project = ? AND source_key NOT LIKE '%#chunk-%'
          ORDER BY source_key`,
@@ -304,9 +326,15 @@ export class SqliteSpecStore {
       path: string;
       raw: string;
       version: string;
+      status: string;
     }>;
 
-    return rows.map((row) => ({ relativePath: row.path, content: row.raw, version: row.version }));
+    return rows.map((row) => ({
+      relativePath: row.path,
+      content: row.raw,
+      version: row.version,
+      status: (row.status ?? 'draft') as SpecStatus,
+    }));
   }
 
   private initializeSchema(): void {
@@ -348,5 +376,18 @@ export class SqliteSpecStore {
         PRIMARY KEY (source_id, model)
       );
     `);
+
+    // Idempotent migration: add status/owner columns to existing DBs.
+    // SQLite throws if the column already exists — that's the migration guard.
+    try {
+      this.db.exec("ALTER TABLE sources ADD COLUMN status TEXT NOT NULL DEFAULT 'draft'");
+    } catch {
+      // column already exists
+    }
+    try {
+      this.db.exec('ALTER TABLE sources ADD COLUMN owner TEXT');
+    } catch {
+      // column already exists
+    }
   }
 }

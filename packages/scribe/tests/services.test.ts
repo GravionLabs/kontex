@@ -5,7 +5,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { listSpecFiles, loadSpecFile, searchSpecFiles } from '../src/services/markdown-loader.js';
-import { detectSpecType, PHASE_SPEC_DIRS, summarizeContent, WORKFLOW_PHASES } from '../src/services/spec-types.js';
+import { detectSpecType, PHASE_SPEC_DIRS, parseFrontmatter, summarizeContent, WORKFLOW_PHASES } from '../src/services/spec-types.js';
 import { scanTeamsContext } from '../src/services/teams-scanner.js';
 
 async function createFixtureRoot(): Promise<string> {
@@ -171,5 +171,32 @@ describe('detectSpecType', () => {
 
   it('plain yaml with no deploy keyword returns api', () => {
     expect(detectSpecType('specs/endpoints.yaml', '')).toBe('api');
+  });
+});
+
+describe('parseFrontmatter', () => {
+  it('returns draft when no frontmatter present', () => {
+    expect(parseFrontmatter('# My Spec\n\nSome content.')).toEqual({ status: 'draft' });
+  });
+
+  it('parses status: approved', () => {
+    const raw = '---\nstatus: approved\n---\n# My Spec';
+    expect(parseFrontmatter(raw)).toEqual({ status: 'approved' });
+  });
+
+  it('parses status: deprecated and owner', () => {
+    const raw = '---\nstatus: deprecated\nowner: team-x\n---\n# My Spec';
+    expect(parseFrontmatter(raw)).toEqual({ status: 'deprecated', owner: 'team-x' });
+  });
+
+  it('falls back to draft for invalid status value', () => {
+    const raw = '---\nstatus: published\n---\n# My Spec';
+    expect(parseFrontmatter(raw)).toEqual({ status: 'draft' });
+  });
+
+  it('returns draft without throwing on malformed YAML frontmatter', () => {
+    const raw = '---\n: invalid: [unclosed\n---\n# My Spec';
+    expect(() => parseFrontmatter(raw)).not.toThrow();
+    expect(parseFrontmatter(raw).status).toBe('draft');
   });
 });

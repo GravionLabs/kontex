@@ -7,8 +7,21 @@ export type SpecType = 'api' | 'domain' | 'workflow' | 'validation' | 'event' | 
 export type SpecDirectory = 'docs' | 'specs';
 export type WorkflowPhase = 'analysis' | 'planning' | 'implementation' | 'testing' | 'verification' | 'deploy';
 export type ContextMode = 'full' | 'summary';
+export type SpecStatus = 'draft' | 'approved' | 'deprecated';
 
-export const WORKFLOW_PHASES: WorkflowPhase[] = ['analysis', 'planning', 'implementation', 'testing', 'verification', 'deploy'];
+export interface SpecFrontmatter {
+  status: SpecStatus;
+  owner?: string;
+}
+
+export const WORKFLOW_PHASES: WorkflowPhase[] = [
+  'analysis',
+  'planning',
+  'implementation',
+  'testing',
+  'verification',
+  'deploy',
+];
 
 export const GLOBAL_CONTEXT_PATHS: string[] = ['specs/architecture/rules.md', 'docs/conventions.md'];
 
@@ -30,6 +43,8 @@ export interface SpecFileInfo {
   kind: string;
   size: number;
   updatedAt: string;
+  status: SpecStatus;
+  owner?: string;
 }
 
 export interface LoadedSpec extends SpecFileInfo {
@@ -55,6 +70,7 @@ export interface ContextEntry {
   relativePath: string;
   content: string;
   version: string;
+  status?: SpecStatus;
 }
 
 export interface ContextQueryOptions {
@@ -73,6 +89,31 @@ export function getFileKind(relativePath: string): string {
 
 export function contentHash(raw: string): string {
   return createHash('sha256').update(raw, 'utf8').digest('hex');
+}
+
+const VALID_STATUSES: readonly SpecStatus[] = ['draft', 'approved', 'deprecated'];
+
+export function parseFrontmatter(raw: string): SpecFrontmatter {
+  try {
+    if (!raw.startsWith('---\n')) {
+      return { status: 'draft' };
+    }
+    const closeIdx = raw.indexOf('\n---', 4);
+    if (closeIdx === -1) {
+      return { status: 'draft' };
+    }
+    const yamlBlock = raw.slice(4, closeIdx);
+    const parsed = parseYaml(yamlBlock) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { status: 'draft' };
+    }
+    const rawStatus = parsed.status;
+    const status: SpecStatus = VALID_STATUSES.includes(rawStatus as SpecStatus) ? (rawStatus as SpecStatus) : 'draft';
+    const owner = typeof parsed.owner === 'string' ? parsed.owner : undefined;
+    return { status, owner };
+  } catch {
+    return { status: 'draft' };
+  }
 }
 
 export function detectSpecType(relativePath: string, raw: string): SpecType {
@@ -94,11 +135,7 @@ export function detectSpecType(relativePath: string, raw: string): SpecType {
     return 'rule';
   }
 
-  if (
-    lowerPath.includes('deploy') ||
-    lowerPath.includes('runbook') ||
-    lowerPath.includes('infra')
-  ) {
+  if (lowerPath.includes('deploy') || lowerPath.includes('runbook') || lowerPath.includes('infra')) {
     return 'deploy';
   }
 
